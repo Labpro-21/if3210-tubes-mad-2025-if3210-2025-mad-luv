@@ -82,7 +82,7 @@ fun PermissionRationaleUI(onRequestPermission: () -> Unit) {
             onClick = onRequestPermission,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color.Blue,
+                backgroundColor = MaterialTheme.colors.primary,
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(Dimens.Three)
@@ -102,7 +102,7 @@ fun PermissionDeniedUI(onGoToSettings: () -> Unit) {
         Text(
             text = stringResource(R.string.permissions_rationale),
             textAlign = TextAlign.Center,
-            color = Color.Red,
+            color = Color.White,
             fontSize = 20.sp
         )
         Spacer(modifier = Modifier.height(Dimens.Sixteen))
@@ -110,7 +110,7 @@ fun PermissionDeniedUI(onGoToSettings: () -> Unit) {
             onClick = onGoToSettings,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color.Blue,
+                backgroundColor = MaterialTheme.colors.primary,
                 contentColor = Color.White
             ),
             shape = RoundedCornerShape(Dimens.Three)

@@ -5,15 +5,24 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.kolee.composemusicexoplayer.presentation.music_screen.MusicScreen
 import com.kolee.composemusicexoplayer.presentation.permission.CheckAndRequestPermissions
+import LoginScreen
+import com.kolee.composemusicexoplayer.data.auth.AuthViewModel
+import com.kolee.composemusicexoplayer.data.auth.AuthViewModelFactory
 import com.kolee.composemusicexoplayer.ui.theme.ComposeMusicExoPlayerTheme
 
 class MainActivity : ComponentActivity() {
+
+    private val authViewModel: AuthViewModel by viewModels {
+        AuthViewModelFactory(applicationContext)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,7 +44,16 @@ class MainActivity : ComponentActivity() {
                     CheckAndRequestPermissions(
                         permissions = listOfPermissions
                     ) {
-                        MusicScreen()
+                        val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+
+                        if (isLoggedIn) {
+                            MusicScreen()
+                        } else {
+                            LoginScreen(
+                                context = this@MainActivity,
+                                onLoginSuccess = { authViewModel.setLoggedIn(true) }
+                            )
+                        }
                     }
                 }
             }

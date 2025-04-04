@@ -1,4 +1,4 @@
-package com.kolee.composemusicexoplayer.data.roomdb
+package com.kolee.composemusicexoplayer.data.auth
 
 import com.kolee.composemusicexoplayer.data.model.LoginRequest
 import com.kolee.composemusicexoplayer.data.model.LoginResponse

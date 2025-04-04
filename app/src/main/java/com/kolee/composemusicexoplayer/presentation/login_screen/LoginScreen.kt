@@ -140,17 +140,14 @@ fun LoginScreen(context: Context,
             Button(
                 onClick = {
                     if (email.isNotBlank() && password.isNotBlank() && email.contains("@")) {
-                        isLoading = true
-//                        authViewModel.login(email, password) { success ->
-//                            if (success) {
-//                                Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
-//                                onLoginSuccess()
-//                            } else {
-//                                Toast.makeText(context, "Login failed!", Toast.LENGTH_SHORT).show()
-//                            }
-//                        }
-                        Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
-                        onLoginSuccess()
+                        authViewModel.login(email, password) { success ->
+                            if (success) {
+                                Toast.makeText(context, "Login successful!", Toast.LENGTH_SHORT).show()
+                                onLoginSuccess()
+                            } else {
+                                Toast.makeText(context, "Invalid email or password", Toast.LENGTH_SHORT).show()
+                            }
+                        }
 
                     } else {
                         Toast.makeText(context, "Invalid email or password", Toast.LENGTH_SHORT).show()
@@ -160,11 +157,7 @@ fun LoginScreen(context: Context,
                 colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
                 shape = RoundedCornerShape(50.dp)
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
-                } else {
-                    Text("Log In", fontSize = 16.sp, color = Color.White, fontFamily = Poppins)
-                }
+                Text("Log In", fontSize = 16.sp, color = Color.White)
             }
         }
     }

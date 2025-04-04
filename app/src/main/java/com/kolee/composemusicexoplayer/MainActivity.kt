@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
                         val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
 
                         if (isLoggedIn) {
-                            MusicScreen()
+                            MusicScreen(authViewModel)
                         } else {
                             LoginScreen(
                                 context = this@MainActivity,

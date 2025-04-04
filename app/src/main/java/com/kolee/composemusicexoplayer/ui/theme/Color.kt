@@ -10,6 +10,6 @@ val Purple700 = Color(0xFF3700B3)
 val Teal200 = Color(0xFF03DAC5)
 
 val Colors.TextDefaultColor: Color
-    @Composable get() = if (isLight) Color(0xFF4B4B4B) else Color(0xFFEEEEEE)
+    @Composable get() =  Color(0xFFEEEEEE)
 val Colors.TintDefaultColor: Color
-    @Composable get() = if (isLight) Color(0xFF4B4B4B) else Color(0xFFEEEEEE)
+    @Composable get() = Color(0xFFEEEEEE)

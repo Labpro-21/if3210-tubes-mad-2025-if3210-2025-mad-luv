@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Music\nPlayer</string>
+    <string name="app_name">Purrytify</string>
     <string name="unknown">Unknown</string>
 
     <string name="permission_prompt">Please allow access to the permissions to use this app!</string>

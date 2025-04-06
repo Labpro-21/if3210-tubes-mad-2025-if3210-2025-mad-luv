@@ -3,11 +3,11 @@ package com.kolee.composemusicexoplayer.utils
 import android.content.Context
 import android.net.Uri
 import android.provider.MediaStore
+import android.util.Log
 import com.kolee.composemusicexoplayer.data.roomdb.MusicEntity
 import com.kolee.composemusicexoplayer.R
 
 object MusicUtil {
-
     fun fetchMusicsFromDevice(
         context: Context,
         isTracksSmallerThan100KBSkipped: Boolean = true,
@@ -25,34 +25,22 @@ object MusicUtil {
         )
 
         val songCursor = context.contentResolver.query(
-            audioUriExternal,
-            musicProjection,
-            null,
-            null,
-            null
+            audioUriExternal, musicProjection, null, null, null
         )
 
         songCursor?.use { cursor ->
-            val cursorIndexSongId = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-            val cursorIndexSongTitle = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
-            val cursorIndexSongArtist = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-            val cursorIndexSongDuration = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-            val cursorIndexSongAlbumId = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
-            val cursorIndexSongSize = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
-
             while (cursor.moveToNext()) {
-                val audioId = cursor.getLong(cursorIndexSongId)
-                val title = cursor.getString(cursorIndexSongTitle)
-                val artist = cursor.getString(cursorIndexSongArtist)
-                val duration = cursor.getLong(cursorIndexSongDuration)
-                val albumId = cursor.getString(cursorIndexSongAlbumId)
-                val size = cursor.getInt(cursorIndexSongSize)
+                val audioId = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID))
+                val title = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE))
+                val artist = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST))
+                val duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION))
+                val albumId = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID))
+                val size = cursor.getInt(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE))
 
-                val albumPath = Uri.withAppendedPath(Uri.parse("content://media/external/audio/albumart"), albumId)
+                val albumPath = Uri.withAppendedPath(
+                    Uri.parse("content://media/external/audio/albumart"), albumId
+                )
                 val musicPath = Uri.withAppendedPath(audioUriExternal, audioId.toString())
-
-                val durationGreaterThan60Sec = duration / 1000 > 60
-                val sizeGreaterThan100KB = (size / 1024) > 100
 
                 val music = MusicEntity(
                     audioId = audioId,
@@ -63,19 +51,12 @@ object MusicUtil {
                     audioPath = musicPath.toString()
                 )
 
-                when {
-                    isTracksSmallerThan100KBSkipped && isTracksShorterThan60SecondsSkipped -> {
-                        if (sizeGreaterThan100KB && durationGreaterThan60Sec) musicList.add(music)
-                    }
-                    !isTracksSmallerThan100KBSkipped && isTracksShorterThan60SecondsSkipped -> {
-                        if (durationGreaterThan60Sec) musicList.add(music)
-                    }
-                    isTracksSmallerThan100KBSkipped && !isTracksShorterThan60SecondsSkipped -> {
-                        if (sizeGreaterThan100KB) musicList.add(music)
-                    }
-                    !isTracksSmallerThan100KBSkipped && !isTracksShorterThan60SecondsSkipped -> {
-                        musicList.add(music)
-                    }
+                val isValid = (!isTracksSmallerThan100KBSkipped || size / 1024 > 100) &&
+                        (!isTracksShorterThan60SecondsSkipped || duration / 1000 > 60)
+
+                if (isValid) {
+                    musicList.add(music)
+                    Log.d("DEBUG_FETCH", "🎵 Added: $title (${duration / 1000}s, ${size / 1024} KB)")
                 }
             }
         }

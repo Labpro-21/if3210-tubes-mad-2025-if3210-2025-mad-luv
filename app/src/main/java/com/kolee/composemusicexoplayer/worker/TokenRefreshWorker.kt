@@ -1,6 +1,7 @@
 package com.kolee.composemusicexoplayer.worker
 
 import android.content.Context
+import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.kolee.composemusicexoplayer.data.auth.UserPreferences
@@ -20,6 +21,7 @@ class TokenRefreshWorker(
         val refreshToken = userPreferences.getRefreshToken.first()
 
         if (token.isNullOrBlank() || refreshToken.isNullOrBlank()) {
+            Log.e("TokenRefreshWorker", "Refresh token is null or blank")
             return Result.failure()
         }
 
@@ -31,6 +33,7 @@ class TokenRefreshWorker(
                 val newTokenResponse = apiService.refreshToken(mapOf("refreshToken" to refreshToken))
                 userPreferences.saveToken(newTokenResponse.accessToken)
                 userPreferences.saveRefreshToken(newTokenResponse.refreshToken)
+                Log.d("TokenRefreshWorker", "Refreshing token with: $refreshToken")
                 Result.success()
             } else {
                 Result.retry()

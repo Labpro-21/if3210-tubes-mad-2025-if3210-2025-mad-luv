@@ -87,7 +87,7 @@ fun LoginScreen(context: Context,
             )
 
             Text(
-                text = "Millions of Songs.\nOnly on Purrifity.",
+                text = "Millions of Songs.\nOnly on Purritify.",
                 fontFamily = Poppins,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,

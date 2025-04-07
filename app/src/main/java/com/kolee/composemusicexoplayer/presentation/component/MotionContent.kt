@@ -1,5 +1,6 @@
 package com.kolee.composemusicexoplayer.presentation.component
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -56,29 +57,31 @@ fun MotionContent(
     ) {
 
         IconButton(
-            onClick = { onBack() },
+            onClick = {
+                Log.d("MotionContent", "Back button pressed")
+                onBack() },
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(start = 16.dp, top = 36.dp)
-                .size(48.dp) // diperbesar
+                .size(48.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.ic_back),
                 contentDescription = "Back",
-                modifier = Modifier.size(30.dp) // Ikon besar
+                modifier = Modifier.size(30.dp)
             )
         }
 
-        // MotionLayout-nya kita kasih padding atas & bawah biar lebih ke tengah
+
         MotionLayout(
             motionScene = MotionScene(content = motionScene),
             progress = fraction,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 30.dp)
-                .padding(top = 200.dp, bottom = 64.dp) // Tengahin kontennya
+                .padding(top = 250.dp, bottom = 64.dp)
         ) {
-            // Spacer untuk top bar kalau expanded
+
             AnimatedVisibility(visible = fraction < 0.8f) {
                 Spacer(
                     modifier = Modifier
@@ -92,8 +95,10 @@ fun MotionContent(
                 albumPath = musicUiState.currentPlayedMusic.albumPath,
                 modifier = Modifier
                     .layoutId("album_image")
-                    .padding(bottom = 24.dp)
+                    .padding(bottom = 130.dp)
+                    .aspectRatio(1f)
             )
+
 
 
             // Title & Artist

@@ -42,12 +42,12 @@
         "visibility": "gone"
       },
       "album_image": {
-        "width": 100,
+        "width": "parent",
         "height": "width",
-        "start": ["parent", "start", 8],
-        "bottom": ["parent", "bottom", 8]
+        "start": ["parent", "start", 64],
+        "end": ["parent", "end", 64],
+        "top": ["top_bar", "bottom"]
       },
-
 
       "column_title_artist": {
         "width": "spread",

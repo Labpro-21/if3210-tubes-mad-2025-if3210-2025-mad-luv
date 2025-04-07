@@ -99,11 +99,14 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
 
 
                     val defaultMusic = MusicEntity(
-                        audioId = -1L,
-                        title = "Lagu Default",
-                        artist = "Offline",
+                        audioId = 100L,
+                        title = "intro (end of the world)",
+                        artist = "Ariana Grande",
                         duration = 151000L,
-                        albumPath = "Internal",
+                        albumPath =  Uri.parse(
+                            ContentResolver.SCHEME_ANDROID_RESOURCE + "://" +
+                                    context.packageName + "/" + R.drawable.album_cover
+                        ).toString(),
                         audioPath = RawResourceDataSource.buildRawResourceUri(R.raw.intro).toString()
                     )
 

@@ -21,7 +21,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun MusicPlayerSheet(
     playerVM: PlayerViewModel,
-     navController: NavHostController
+     navController: NavHostController,
+    onCollapse: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val scaffoldState = rememberBottomSheetScaffoldState(
@@ -29,17 +30,6 @@ fun MusicPlayerSheet(
     )
 
     val fraction = scaffoldState.currentFraction()
-
-    BackHandler {
-        if (scaffoldState.bottomSheetState.isExpanded) {
-            scope.launch { scaffoldState.bottomSheetState.collapse() }
-        } else {
-            navController.navigate("home") {
-                popUpTo("home") { inclusive = true }
-            }
-        }
-    }
-
 
     Box(modifier = Modifier.fillMaxSize()) {
 
@@ -52,9 +42,14 @@ fun MusicPlayerSheet(
                 .background(Color.Black)
                 .zIndex(0f),
             onBack = {
-                navController.popBackStack()
+                scope.launch {
+                    scaffoldState.bottomSheetState.collapse()
+                    onCollapse()
+                }
+
             }
         )
+
 
     }
 }

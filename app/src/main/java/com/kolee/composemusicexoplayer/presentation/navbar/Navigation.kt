@@ -30,8 +30,6 @@ fun Navigation(
         composable("profile") {
             ProfileScreen(viewModel = authViewModel)
         }
-        bottomSheet("music_player") {
-            MusicPlayerSheet(playerVM = playerViewModel, navController)
-        }
+
     }
 }

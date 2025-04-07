@@ -27,7 +27,7 @@ private const val TAG = "MusicScreen"
 fun MusicScreen(playerVM: PlayerViewModel = hiltViewModel(), navController: NavHostController) {
     val context = LocalContext.current
     val musicUiState by playerVM.uiState.collectAsState()
-
+    var open by remember { mutableStateOf(true) }
     val isMusicPlaying = musicUiState.currentPlayedMusic != MusicEntity.default
 
     LaunchedEffect(key1 = musicUiState.currentPlayedMusic) {
@@ -47,10 +47,19 @@ fun MusicScreen(playerVM: PlayerViewModel = hiltViewModel(), navController: NavH
         }
 
         if (isMusicPlaying) {
-            MusicPlayerSheet(
-                playerVM = playerVM,
-                navController = navController
-            )
+            if (open) {
+                MusicPlayerSheet(
+                    playerVM = playerVM,
+                    navController = navController,
+                    onCollapse = { open = false } // <-- collapse ke mini
+                )
+            } else {
+                BottomMusicPlayerImpl(
+                    musicUiState = musicUiState,
+                    onPlayPauseClicked = { playerVM.onEvent(PlayerEvent.PlayPause(isMusicPlaying)) },
+                    onExpand = { open = true } // <-- expand ke full sheet
+                )
+            }
         }
     }
 
@@ -67,6 +76,7 @@ fun MusicScreen(playerVM: PlayerViewModel = hiltViewModel(), navController: NavH
         }
     }
 }
+
 
 @Composable
 fun ComposableLifeCycle(

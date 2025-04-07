@@ -14,29 +14,23 @@ import com.kolee.composemusicexoplayer.presentation.music_screen.MusicUiState
 @Composable
 fun BoxScope.BottomMusicPlayerImpl(
     musicUiState: MusicUiState,
-    onPlayPauseClicked: (isPlaying: Boolean) -> Unit
-){
+    onPlayPauseClicked: (isPlaying: Boolean) -> Unit,
+    onExpand: () -> Unit
+) {
     AnimatedVisibility(
         visible = musicUiState.isBottomPlayerShow,
-        enter = slideInVertically(
-            initialOffsetY = {it}
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = {it}
-        ),
+        enter = slideInVertically(initialOffsetY = { it }),
+        exit = slideOutVertically(targetOffsetY = { it }),
         modifier = Modifier
-            .navigationBarsPadding()
-            .fillMaxSize()
             .align(Alignment.BottomCenter)
+            .navigationBarsPadding()
     ) {
         BottomMusicPlayer(
             currentMusic = musicUiState.currentPlayedMusic,
             currentDuration = musicUiState.currentDuration,
             isPlaying = musicUiState.isPlaying,
-            onClick = {},
+            onClick = onExpand,
             onPlayPauseClicked = onPlayPauseClicked
         )
-
-
     }
 }

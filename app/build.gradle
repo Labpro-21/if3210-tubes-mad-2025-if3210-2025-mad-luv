@@ -59,7 +59,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material:material:1.5.0")
     implementation("androidx.navigation:navigation-compose:2.7.7")
-    implementation("androidx.compose.ui:ui-graphics:1.5.0") // atau versi terbaru
+    implementation("androidx.compose.ui:ui-graphics:1.5.0")
 
 
     // Room Database

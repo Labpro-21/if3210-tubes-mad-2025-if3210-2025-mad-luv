@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "778760b30e9c4fd2ae6828bd508fb177",
+    "identityHash": "ab18bb2b67f983599ca2eedf46385d76",
     "entities": [
       {
         "tableName": "MusicEntity",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`audioId` INTEGER NOT NULL, `title` TEXT NOT NULL, `artist` TEXT NOT NULL, `duration` INTEGER NOT NULL, `albumPath` TEXT NOT NULL, `audioPath` TEXT NOT NULL, PRIMARY KEY(`audioId`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`audioId` INTEGER NOT NULL, `title` TEXT NOT NULL, `artist` TEXT NOT NULL, `duration` INTEGER NOT NULL, `albumPath` TEXT NOT NULL, `audioPath` TEXT NOT NULL, `lastPlayedAt` INTEGER NOT NULL, `loved` INTEGER NOT NULL, PRIMARY KEY(`audioId`))",
         "fields": [
           {
             "fieldPath": "audioId",
@@ -43,6 +43,18 @@
             "columnName": "audioPath",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "lastPlayedAt",
+            "columnName": "lastPlayedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "loved",
+            "columnName": "loved",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -58,7 +70,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '778760b30e9c4fd2ae6828bd508fb177')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ab18bb2b67f983599ca2eedf46385d76')"
     ]
   }
 }

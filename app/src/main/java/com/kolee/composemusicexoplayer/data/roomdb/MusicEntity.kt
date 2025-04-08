@@ -12,7 +12,9 @@ data class MusicEntity(
     val artist: String,
     val duration: Long,
     val albumPath: String,
-    val audioPath: String
+    val audioPath: String,
+    val lastPlayedAt: Long = 0L,
+    val loved: Boolean = false
 ) {
     companion object {
         val default = MusicEntity(

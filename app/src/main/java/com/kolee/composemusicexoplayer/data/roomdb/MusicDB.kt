@@ -5,7 +5,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [MusicEntity::class], version = 1)
+@Database(
+    entities = [MusicEntity::class],
+    version = 2,
+    exportSchema = false
+)
 abstract class MusicDB : RoomDatabase() {
     abstract fun musicDao(): MusicDao
 
@@ -13,18 +17,19 @@ abstract class MusicDB : RoomDatabase() {
         @Volatile
         private var instance: MusicDB? = null
 
-        fun getInstance(context: Context):MusicDB {
+        fun getInstance(context: Context): MusicDB {
             return instance ?: synchronized(this) {
-                instance?: buildDatabase(context).also { instance = it }
+                instance ?: buildDatabase(context).also { instance = it }
             }
         }
 
-        private fun buildDatabase(context: Context):MusicDB {
+        private fun buildDatabase(context: Context): MusicDB {
             return Room.databaseBuilder(
                 context,
                 MusicDB::class.java,
-                name = "music_db_1129"
+                "music_db_1129"
             )
+                .fallbackToDestructiveMigration()
                 .allowMainThreadQueries()
                 .build()
         }

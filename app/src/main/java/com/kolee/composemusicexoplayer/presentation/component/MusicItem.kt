@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -28,72 +29,135 @@ fun MusicItem(
     music: MusicEntity,
     selected: Boolean,
     isMusicPlaying: Boolean,
+    isHorizontal:Boolean = false,
     onClick: () -> Unit
 ) {
-    Card(
-        onClick = onClick,
-        backgroundColor = Color.Transparent,
-        elevation = 0.dp,
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-                .height(72.dp)
+    if (isHorizontal) {
+        Card(
+            onClick = onClick,
+            backgroundColor = Color.Transparent,
+            elevation = 0.dp,
+            shape = RoundedCornerShape(8.dp),
         ) {
-            Image(
-                painter = rememberAsyncImagePainter(
-                    ImageRequest.Builder(LocalContext.current)
-                        .data(music.albumPath.toUri())
-                        .error(R.drawable.ic_music_unknown)
-                        .placeholder(R.drawable.ic_music_unknown)
-                        .build()
-                ),
-                contentDescription = null,
-                modifier = Modifier
-                    .padding(8.dp)
-                    .fillMaxHeight()
-                    .aspectRatio(1f)
-                    .clip(MaterialTheme.shapes.medium)
-            )
-
             Column(
-                verticalArrangement = Arrangement.SpaceEvenly,
                 modifier = Modifier
-                    .padding(horizontal = 8.dp)
-                    .weight(1f)
+                    .padding(vertical = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = music.title,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.body2.copy(
-                        color = if (selected) MaterialTheme.colors.primary
-                        else LocalContentColor.current,
-                        fontWeight = FontWeight.Bold
-                    )
+                Image(
+                    painter = rememberAsyncImagePainter(
+                        ImageRequest.Builder(LocalContext.current)
+                            .data(music.albumPath.toUri())
+                            .error(R.drawable.ic_music_unknown)
+                            .placeholder(R.drawable.ic_music_unknown)
+                            .build()
+                    ),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(110.dp)
+                        .clip(RoundedCornerShape(12.dp))
                 )
 
-                Text(
-                    text = music.artist,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.body2.copy(
-                        color = if (selected) MaterialTheme.colors.primary
-                        else LocalContentColor.current.copy(alpha = 0.7f)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .width(110.dp)
+                ) {
+                    Text(
+                        text = music.title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.body2.copy(
+                            color = if (selected) MaterialTheme.colors.primary
+                            else LocalContentColor.current,
+                            fontWeight = FontWeight.Bold
+                        )
                     )
-                )
+                    Text(
+                        text = music.artist,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.body2.copy(
+                            color = if (selected) MaterialTheme.colors.primary
+                            else LocalContentColor.current.copy(alpha = 0.7f)
+                        )
+                    )
+                }
+
+
+
             }
-
-            AnimatedVisibility(
-                modifier = Modifier.padding(8.dp),
-                visible = selected,
-                enter = scaleIn(),
-                exit = scaleOut()
+        }
+    }
+    else {
+        Card(
+            onClick = onClick,
+            backgroundColor = Color.Transparent,
+            elevation = 0.dp,
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .height(72.dp)
             ) {
-                AudioWave(isMusicPlaying = isMusicPlaying)
+                Image(
+                    painter = rememberAsyncImagePainter(
+                        ImageRequest.Builder(LocalContext.current)
+                            .data(music.albumPath.toUri())
+                            .error(R.drawable.ic_music_unknown)
+                            .placeholder(R.drawable.ic_music_unknown)
+                            .build()
+                    ),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .fillMaxHeight()
+                        .aspectRatio(1f)
+                        .clip(MaterialTheme.shapes.medium)
+                )
+
+                Column(
+                    verticalArrangement = Arrangement.SpaceEvenly,
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp)
+                        .weight(1f)
+                ) {
+                    Text(
+                        text = music.title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.body2.copy(
+                            color = if (selected) MaterialTheme.colors.primary
+                            else LocalContentColor.current,
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+
+                    Text(
+                        text = music.artist,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.body2.copy(
+                            color = if (selected) MaterialTheme.colors.primary
+                            else LocalContentColor.current.copy(alpha = 0.7f)
+                        )
+                    )
+                }
+
+                AnimatedVisibility(
+                    modifier = Modifier.padding(8.dp),
+                    visible = selected,
+                    enter = scaleIn(),
+                    exit = scaleOut()
+                ) {
+                    AudioWave(isMusicPlaying = isMusicPlaying)
+                }
             }
         }
     }

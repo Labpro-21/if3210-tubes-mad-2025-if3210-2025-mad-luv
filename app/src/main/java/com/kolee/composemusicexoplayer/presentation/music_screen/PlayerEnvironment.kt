@@ -134,6 +134,16 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         }
     }
 
+    suspend fun updateMusic(music: MusicEntity) {
+        musicRepository.updateMusic(music)
+
+        val updatedList = allMusics.value.map {
+            if (it.audioId == music.audioId) music else it
+        }
+        _allMusics.emit(updatedList)
+    }
+
+
     fun snapTo(duration: Long, fromUser: Boolean = true) {
         _currentDuration.tryEmit(duration)
         if (fromUser) playerHandler.post { exoPlayer.seekTo(duration) }

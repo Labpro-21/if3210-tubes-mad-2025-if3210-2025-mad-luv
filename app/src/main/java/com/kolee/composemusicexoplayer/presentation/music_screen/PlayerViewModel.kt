@@ -3,6 +3,7 @@ package com.kolee.composemusicexoplayer.presentation.music_screen
 import android.annotation.SuppressLint
 import android.content.Context
 import androidx.lifecycle.viewModelScope
+import com.kolee.composemusicexoplayer.data.roomdb.MusicEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collect
@@ -46,8 +47,16 @@ class PlayerViewModel @Inject constructor(
         when (event) {
             is PlayerEvent.Play -> {
                 viewModelScope.launch {
-                    environment.play(event.musicEntity)
-                    environment.setShowButtonMusicPlayer(true)}
+                    val updatedMusic = event.musicEntity.copy(lastPlayedAt = System.currentTimeMillis())
+                    environment.play(updatedMusic)
+                    environment.setShowButtonMusicPlayer(true)
+                    environment.updateMusic(updatedMusic)
+
+                    val updatedList = uiState.value.musicList.map {
+                        if (it.audioId == updatedMusic.audioId) updatedMusic else it
+                    }
+                    updateState { copy(musicList = updatedList) }
+                }
             }
 
             is PlayerEvent.PlayPause -> {
@@ -82,6 +91,25 @@ class PlayerViewModel @Inject constructor(
             is PlayerEvent.updateMusicList -> {
                 viewModelScope.launch { environment.updateMusicList(event.musicList) }
             }
+
+            is PlayerEvent.ToggleLoved -> {
+                viewModelScope.launch {
+                    val updatedMusic = event.music.copy(loved = !event.music.loved)
+                    environment.updateMusic(updatedMusic)
+
+                    val updatedList = uiState.value.musicList.map {
+                        if (it.audioId == updatedMusic.audioId) updatedMusic else it
+                    }
+                    updateState { copy(musicList = updatedList) }
+                }
+            }
         }
     }
+
+    fun getRecentlyPlayed(): List<MusicEntity> {
+        return uiState.value.musicList
+            .sortedByDescending { it.lastPlayedAt }
+    }
+
+
 }

@@ -10,11 +10,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.kolee.composemusicexoplayer.presentation.music_screen.MusicUiState
+import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 
 @Composable
 fun BoxScope.BottomMusicPlayerImpl(
     musicUiState: MusicUiState,
     onPlayPauseClicked: (isPlaying: Boolean) -> Unit,
+    playerVM: PlayerViewModel,
     onExpand: () -> Unit
 ) {
     AnimatedVisibility(
@@ -30,7 +32,8 @@ fun BoxScope.BottomMusicPlayerImpl(
             currentDuration = musicUiState.currentDuration,
             isPlaying = musicUiState.isPlaying,
             onClick = onExpand,
-            onPlayPauseClicked = onPlayPauseClicked
+            playerVM = playerVM,
+            onPlayPauseClicked = onPlayPauseClicked,
         )
     }
 }

@@ -23,4 +23,8 @@ interface MusicDao {
     @Update
     suspend fun updateMusic(music: MusicEntity)
 
+    @Query("SELECT * FROM MusicEntity WHERE audioId = :audioId LIMIT 1")
+    suspend fun getMusicById(audioId: Long): MusicEntity?
+
+
 }

@@ -9,6 +9,7 @@ import androidx.annotation.OptIn
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.RawResourceDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -50,6 +51,9 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     private val _playbackMode = MutableStateFlow(PlaybackMode.REPEAT_ALL)
     private val playbackMode = _playbackMode.asStateFlow()
 
+    private val _isPlayerExpanded = MutableStateFlow(false)
+    val isPlayerExpanded = _isPlayerExpanded.asStateFlow()
+
     private val playerHandler = Handler(Looper.getMainLooper())
 
     private val exoPlayer = ExoPlayer.Builder(context).build().apply {
@@ -89,37 +93,57 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
 
     init {
         scope.launch {
+            val defaultMusic = MusicEntity(
+                audioId = 100L,
+                title = "intro (end of the world)",
+                artist = "Ariana Grande",
+                duration = 151000L,
+                loved = true,
+                albumPath = Uri.parse(
+                    ContentResolver.SCHEME_ANDROID_RESOURCE + "://" +
+                            context.packageName + "/" + R.drawable.album_cover
+                ).toString(),
+                audioPath = RawResourceDataSource.buildRawResourceUri(R.raw.intro).toString()
+            )
+
+            val existing = musicRepository.getMusicById(100L)
+
+            if (existing == null) {
+                Log.d("MusicDebug", "Inserting default music")
+                musicRepository.insertMusic(defaultMusic)
+            } else {
+                Log.d("MusicDebug", "Updating default music")
+
+                val updated = existing.copy(
+                    title = defaultMusic.title,
+                    artist = defaultMusic.artist,
+                    duration = defaultMusic.duration,
+                    albumPath = defaultMusic.albumPath,
+                    audioPath = defaultMusic.audioPath
+                )
+                musicRepository.updateMusic(updated)
+            }
+
             musicRepository.getAllMusic()
                 .distinctUntilChanged()
-                .collect {
-                    val albumPath = Uri.parse(
-                        ContentResolver.SCHEME_ANDROID_RESOURCE + "://" +
-                                context.packageName + "/" + R.drawable.ic_music_unknown
-                    ).toString()
-
-
-                    val defaultMusic = MusicEntity(
-                        audioId = 100L,
-                        title = "intro (end of the world)",
-                        artist = "Ariana Grande",
-                        duration = 151000L,
-                        albumPath =  Uri.parse(
-                            ContentResolver.SCHEME_ANDROID_RESOURCE + "://" +
-                                    context.packageName + "/" + R.drawable.album_cover
-                        ).toString(),
-                        audioPath = RawResourceDataSource.buildRawResourceUri(R.raw.intro).toString()
-                    )
-
-                    _allMusics.emit(listOf(defaultMusic) + it)
+                .collect { musicList ->
+                    _allMusics.emit(musicList)
                 }
+
         }
     }
+
+
 
     fun getAllMusic(): Flow<List<MusicEntity>> = allMusics
     fun isBottomMusicPlayerShowed(): Flow<Boolean> = isBottomMusicPlayerShowed
     fun getCurrentPlayedMusic(): Flow<MusicEntity> = currentPlayedMusic
     fun isPlaying(): Flow<Boolean> = isPlaying
     fun getCurrentDuration(): Flow<Long> = currentDuration
+
+    fun setPlayerExpanded(expanded: Boolean) {
+        _isPlayerExpanded.value = expanded
+    }
 
     suspend fun play(music: MusicEntity) {
         if (music.audioId != MusicEntity.default.audioId) {
@@ -199,12 +223,19 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     }
 
     private suspend fun insertAllMusics(newMusicList: List<MusicEntity>) {
-        val musicToInsert = newMusicList.filterNot { new -> allMusics.value.any { it.audioId == new.audioId } }
-        val musicToDelete = allMusics.value.filterNot { stored -> newMusicList.any { it.audioId == stored.audioId } }
+        val defaultMusicId = 100L
+
+        val musicToInsert = newMusicList.filterNot { new ->
+            allMusics.value.any { it.audioId == new.audioId }
+        }
+        val musicToDelete = allMusics.value.filterNot { stored ->
+            newMusicList.any { it.audioId == stored.audioId } || stored.audioId == defaultMusicId
+        }
 
         musicRepository.insertMusics(*musicToInsert.toTypedArray())
         musicRepository.deleteMusics(*musicToDelete.toTypedArray())
     }
+
 
     fun release() {
         exoPlayer.release()

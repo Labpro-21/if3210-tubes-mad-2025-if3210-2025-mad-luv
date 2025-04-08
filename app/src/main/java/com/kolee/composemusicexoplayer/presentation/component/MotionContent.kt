@@ -79,7 +79,7 @@ fun MotionContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 30.dp)
-                .padding(top = 250.dp, bottom = 64.dp)
+                .padding(top = 260.dp, bottom = 64.dp)
         ) {
 
             AnimatedVisibility(visible = fraction < 0.8f) {
@@ -95,45 +95,67 @@ fun MotionContent(
                 albumPath = musicUiState.currentPlayedMusic.albumPath,
                 modifier = Modifier
                     .layoutId("album_image")
-                    .padding(bottom = 130.dp)
+                    .padding(bottom = 180.dp)
                     .aspectRatio(1f)
             )
 
 
-
-            // Title & Artist
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceEvenly,
+            // Title & Artist + Love Button
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .layoutId("column_title_artist")
                     .fillMaxWidth()
+                    .padding(bottom = 15.dp)
             ) {
-                Text(
-                    text = musicUiState.currentPlayedMusic.title,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Start,
-                    style = MaterialTheme.typography.h6.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 20.sp,
-                        color = Color.White
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = musicUiState.currentPlayedMusic.artist,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Start,
-                    style = MaterialTheme.typography.body2.copy(
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = musicUiState.currentPlayedMusic.title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Start,
+                        style = MaterialTheme.typography.h6.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 20.sp,
+                            color = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = musicUiState.currentPlayedMusic.artist,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Start,
+                        style = MaterialTheme.typography.body2.copy(
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                IconButton(
+                    onClick = {
+                        playerVM.onEvent(PlayerEvent.ToggleLoved(musicUiState.currentPlayedMusic))
+                    },
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(
+                            id = if (musicUiState.currentPlayedMusic.loved)
+                                R.drawable.ic_favorite
+                            else
+                                R.drawable.ic_favorite_border
+                        ),
+                        contentDescription = "Love",
+                        tint = if (musicUiState.currentPlayedMusic.loved) Color.Red else Color.White
+                    )
+                }
             }
+
 
             // Top player buttons
             AnimatedVisibility(visible = fraction > 0.8f) {

@@ -25,7 +25,7 @@ fun Navigation(
             MusicScreen(playerVM = playerViewModel, navController)
         }
         composable("library") {
-            LibraryScreen()
+            LibraryScreen(playerVM = playerViewModel, navController)
         }
         composable("profile") {
             ProfileScreen(viewModel = authViewModel)

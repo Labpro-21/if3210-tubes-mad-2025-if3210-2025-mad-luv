@@ -33,13 +33,15 @@ fun MusicScreen(
 ) {
     val context = LocalContext.current
     val musicUiState by playerVM.uiState.collectAsState()
-    var open by remember { mutableStateOf(true) }
+    var open = musicUiState.isPlayerExpanded
     val isMusicPlaying = musicUiState.currentPlayedMusic != MusicEntity.default
 
     LaunchedEffect(key1 = musicUiState.currentPlayedMusic) {
         val isShowed = (musicUiState.currentPlayedMusic != MusicEntity.default)
         playerVM.onEvent(PlayerEvent.SetShowBottomPlayer(isShowed))
+
     }
+
 
     Box(
         modifier = Modifier
@@ -74,15 +76,16 @@ fun MusicScreen(
                 MusicPlayerSheet(
                     playerVM = playerVM,
                     navController = navController,
-                    onCollapse = { open = false }
+                    onCollapse = { playerVM.setPlayerExpanded(false) }
                 )
             } else {
                 BottomMusicPlayerImpl(
+                    playerVM = playerVM,
                     musicUiState = musicUiState,
                     onPlayPauseClicked = {
                         playerVM.onEvent(PlayerEvent.PlayPause(isMusicPlaying))
                     },
-                    onExpand = { open = true }
+                    onExpand = {playerVM.setPlayerExpanded(true) }
                 )
             }
         }
@@ -130,7 +133,9 @@ fun MusicSection(
                         selected = music.audioId == musicUiState.currentPlayedMusic.audioId,
                         isMusicPlaying = musicUiState.isPlaying,
                         isHorizontal = isHorizontal,
-                        onClick = { onSelectedMusic(music) }
+                        onClick = {
+
+                            onSelectedMusic(music) }
                     )
                 }
             }

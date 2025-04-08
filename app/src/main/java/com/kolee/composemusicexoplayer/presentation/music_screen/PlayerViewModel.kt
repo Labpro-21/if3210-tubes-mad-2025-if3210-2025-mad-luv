@@ -100,15 +100,33 @@ class PlayerViewModel @Inject constructor(
                     val updatedList = uiState.value.musicList.map {
                         if (it.audioId == updatedMusic.audioId) updatedMusic else it
                     }
-                    updateState { copy(musicList = updatedList) }
+
+                    updateState {
+                        copy(
+                            musicList = updatedList,
+                            currentPlayedMusic = if (currentPlayedMusic.audioId == updatedMusic.audioId)
+                                updatedMusic
+                            else currentPlayedMusic
+                        )
+                    }
                 }
             }
+
         }
     }
 
     fun getRecentlyPlayed(): List<MusicEntity> {
         return uiState.value.musicList
             .sortedByDescending { it.lastPlayedAt }
+    }
+
+    fun getLoved(): List<MusicEntity> {
+        return uiState.value.musicList
+            .filter { it.loved }
+    }
+
+    fun setPlayerExpanded(expanded: Boolean) {
+        updateState { copy(isPlayerExpanded = expanded) }
     }
 
 

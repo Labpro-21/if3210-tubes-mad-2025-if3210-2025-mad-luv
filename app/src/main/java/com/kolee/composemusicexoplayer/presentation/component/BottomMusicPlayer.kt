@@ -7,10 +7,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -21,6 +24,8 @@ import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.kolee.composemusicexoplayer.R
 import com.kolee.composemusicexoplayer.data.roomdb.MusicEntity
+import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerEvent
+import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -29,8 +34,12 @@ fun BottomMusicPlayer(
     currentDuration: Long,
     isPlaying: Boolean,
     onClick: () -> Unit,
+    playerVM: PlayerViewModel,
     onPlayPauseClicked: (isPlaying: Boolean) -> Unit
 ) {
+
+    val musicUiState by playerVM.uiState.collectAsState()
+
     val progress = remember(currentDuration, currentMusic.duration) {
         if (currentMusic.duration > 0) currentDuration.toFloat() / currentMusic.duration.toFloat()
         else 0f
@@ -75,11 +84,34 @@ fun BottomMusicPlayer(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            PlayPauseButton(
-                progress = progress,
-                isPlaying = isPlaying
-            ) {
-                onPlayPauseClicked(isPlaying)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = {
+                        playerVM.onEvent(PlayerEvent.ToggleLoved(musicUiState.currentPlayedMusic))
+                    },
+                    modifier = Modifier.padding(start = 8.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(
+                            id = if (musicUiState.currentPlayedMusic.loved)
+                                R.drawable.ic_favorite
+                            else
+                                R.drawable.ic_favorite_border
+                        ),
+                        contentDescription = "Love",
+                        tint = if (musicUiState.currentPlayedMusic.loved) Color.Red else Color.White
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                PlayPauseButton(
+                    progress = progress,
+                    isPlaying = isPlaying
+                ) {
+                    onPlayPauseClicked(isPlaying)
+                }
+
             }
         }
     }

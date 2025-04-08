@@ -19,6 +19,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.accompanist.navigation.material.*
 import com.kolee.composemusicexoplayer.data.auth.AuthViewModel
 import com.kolee.composemusicexoplayer.data.auth.AuthViewModelFactory
+import com.kolee.composemusicexoplayer.data.profile.ProfileViewModel
+import com.kolee.composemusicexoplayer.data.profile.ProfileViewModelFactory
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 import com.kolee.composemusicexoplayer.presentation.navigation.BottomNavItem
 import com.kolee.composemusicexoplayer.presentation.navigation.Navigation
@@ -29,11 +31,10 @@ import LoginScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import com.google.accompanist.navigation.material.BottomSheetNavigator
-import com.google.accompanist.navigation.material.rememberBottomSheetNavigator
 import androidx.compose.material.rememberModalBottomSheetState
-import androidx.compose.material.ModalBottomSheetLayout
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.navigation.compose.rememberNavController
+import com.kolee.composemusicexoplayer.data.auth.UserPreferences
 
 
 @AndroidEntryPoint
@@ -41,6 +42,10 @@ class MainActivity : ComponentActivity() {
 
     private val authViewModel: AuthViewModel by viewModels {
         AuthViewModelFactory(applicationContext)
+    }
+
+    private val profileViewModel: ProfileViewModel by viewModels {
+        ProfileViewModelFactory(UserPreferences(applicationContext))
     }
 
     @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterialNavigationApi::class)
@@ -95,7 +100,8 @@ class MainActivity : ComponentActivity() {
                                             Navigation(
                                                 navController = navController,
                                                 authViewModel = authViewModel,
-                                                playerViewModel = playerViewModel
+                                                playerViewModel = playerViewModel,
+                                                profileViewModel = profileViewModel,
                                             )
                                         }
                                     } else {
@@ -123,7 +129,8 @@ class MainActivity : ComponentActivity() {
                                                 Navigation(
                                                     navController = navController,
                                                     authViewModel = authViewModel,
-                                                    playerViewModel = playerViewModel
+                                                    playerViewModel = playerViewModel,
+                                                    profileViewModel = profileViewModel,
                                                 )
                                             }
                                         }

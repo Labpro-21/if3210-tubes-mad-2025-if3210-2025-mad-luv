@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import androidx.lifecycle.viewModelScope
 import com.kolee.composemusicexoplayer.data.roomdb.MusicEntity
+import com.kolee.composemusicexoplayer.data.roomdb.MusicRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.collect
@@ -14,12 +15,13 @@ import javax.inject.Inject
 @SuppressLint("StaticFieldLeak")
 class PlayerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val environment: PlayerEnvironment
+    private val environment: PlayerEnvironment,
+    private val musicRepository: MusicRepository
 ) : StatefulViewModel<MusicUiState>(MusicUiState()) {
 
     init {
         viewModelScope.launch {
-            environment.getAllMusic().collect { musics ->
+            environment.getAllMusic().collect {musics ->
                 updateState { copy(musicList = musics) }
             }
         }
@@ -129,5 +131,9 @@ class PlayerViewModel @Inject constructor(
         updateState { copy(isPlayerExpanded = expanded) }
     }
 
-
+    fun addMusic(music: MusicEntity) {
+        viewModelScope.launch {
+            musicRepository.insertMusic(music)
+        }
+    }
 }

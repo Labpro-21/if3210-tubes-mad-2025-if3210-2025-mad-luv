@@ -133,12 +133,35 @@ fun LibraryScreen(
     val likedSongs = allSongs.filter { it.loved }
 
     var selectedTab by remember { mutableStateOf("All") }
-    val context = LocalContext.current
 
-    val songsToDisplay = when (selectedTab) {
-        "Liked" -> likedSongs
-        else -> allSongs
+    Row(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        listOf("All", "Liked").forEach { tab ->
+            val isSelected = selectedTab == tab
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = if (isSelected) MaterialTheme.colors.primary else MaterialTheme.colors.surface,
+                        shape = MaterialTheme.shapes.medium
+                    )
+                    .clickable { selectedTab = tab }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = tab,
+                    color = if (isSelected) MaterialTheme.colors.onPrimary else MaterialTheme.colors.onSurface
+                )
+            }
+        }
     }
+
+    Spacer(modifier = Modifier.height(16.dp))
+    val songsToDisplay = if (selectedTab == "Liked") likedSongs else musicUiState.musicList
+
+    val context = LocalContext.current
 
     val recyclerViewRef = remember { mutableStateOf<RecyclerView?>(null) }
 
@@ -148,15 +171,20 @@ fun LibraryScreen(
         }
     }
 
+    // Update the adapter when songs list changes
     LaunchedEffect(songsToDisplay) {
         adapter.updateList(songsToDisplay)
     }
 
+    // Update the currently playing song indicator
     LaunchedEffect(musicUiState.currentPlayedMusic) {
         adapter.updatePlayingSong(musicUiState.currentPlayedMusic.audioId)
     }
 
-    // biar header ama toggle gk ilang dan ngalangin
+    LaunchedEffect(Unit) {
+        playerVM.onEvent(PlayerEvent.RefreshMusicList)
+    }
+
     val showHeaderAndTab = !musicUiState.isPlayerExpanded || !musicUiState.isBottomPlayerShow
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -181,20 +209,24 @@ fun LibraryScreen(
                         style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold),
                         color = Color.White
                     )
-                    IconButton(onClick = { /* TODO: Add music */ }) {
+                    IconButton(
+                        onClick = {
+                            navController.navigate("create_song_screen")
+                        }
+                    ) {
                         Icon(Icons.Default.Add, contentDescription = "Add", tint = Color.White)
                     }
                 }
 
                 // Tabs
-                Row(
+                /*Row(
                     modifier = Modifier
                         .padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     ToggleTab("All", selectedTab == "All") { selectedTab = "All" }
                     ToggleTab("Liked", selectedTab == "Liked") { selectedTab = "Liked" }
-                }
+                }*/
 
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -237,6 +269,3 @@ fun LibraryScreen(
         }
     }
 }
-
-
-

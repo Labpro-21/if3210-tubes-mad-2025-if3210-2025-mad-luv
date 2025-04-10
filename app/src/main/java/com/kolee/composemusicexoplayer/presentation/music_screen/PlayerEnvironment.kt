@@ -217,9 +217,30 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         }
     }
 
+    suspend fun addMusic(music: MusicEntity){
+        musicRepository.insertMusics(music)
+    }
+
+    suspend fun addMusicAndRefresh(music: MusicEntity) {
+        addMusic(music)
+
+        val scannedMusics = MusicUtil.fetchMusicsFromDevice(context)
+
+        val combinedList = scannedMusics.toMutableList()
+
+        val musicAlreadyInScannedList = scannedMusics.any { it.audioId == music.audioId }
+
+        if (!musicAlreadyInScannedList) {
+            combinedList.add(music)
+        }
+
+        insertAllMusics(combinedList)
+    }
+
+
     suspend fun refreshMusicList() {
         val scannedMusics = MusicUtil.fetchMusicsFromDevice(context)
-        insertAllMusics(scannedMusics)
+//        insertAllMusics(scannedMusics)
     }
 
     private suspend fun insertAllMusics(newMusicList: List<MusicEntity>) {

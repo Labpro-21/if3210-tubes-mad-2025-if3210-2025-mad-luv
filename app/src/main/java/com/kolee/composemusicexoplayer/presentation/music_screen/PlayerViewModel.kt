@@ -94,6 +94,14 @@ class PlayerViewModel @Inject constructor(
                 viewModelScope.launch { environment.updateMusicList(event.musicList) }
             }
 
+            is PlayerEvent.updateMusicList -> {
+                viewModelScope.launch { environment.updateMusicList(event.musicList) }
+            }
+
+            is PlayerEvent.addMusic -> {
+                viewModelScope.launch { environment.addMusicAndRefresh(event.music) }
+            }
+
             is PlayerEvent.ToggleLoved -> {
                 viewModelScope.launch {
                     val updatedMusic = event.music.copy(loved = !event.music.loved)
@@ -131,9 +139,4 @@ class PlayerViewModel @Inject constructor(
         updateState { copy(isPlayerExpanded = expanded) }
     }
 
-    fun addMusic(music: MusicEntity) {
-        viewModelScope.launch {
-            musicRepository.insertMusic(music)
-        }
-    }
 }

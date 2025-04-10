@@ -12,7 +12,6 @@ import com.kolee.composemusicexoplayer.presentation.profil_screen.ProfileScreen
 import com.kolee.composemusicexoplayer.data.auth.AuthViewModel
 import com.kolee.composemusicexoplayer.data.profile.ProfileViewModel
 import com.kolee.composemusicexoplayer.presentation.MusicPlayerSheet.MusicPlayerSheet
-import com.kolee.composemusicexoplayer.presentation.create_song.CreateSongScreen
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 
 @OptIn(ExperimentalMaterialNavigationApi::class)
@@ -32,12 +31,6 @@ fun Navigation(
         }
         composable("profile") {
             ProfileScreen(viewModel = profileViewModel)
-        }
-        composable("create_song_screen") {
-            CreateSongScreen(
-                navController = navController,
-                playerViewModel = playerViewModel
-            )
         }
     }
 }

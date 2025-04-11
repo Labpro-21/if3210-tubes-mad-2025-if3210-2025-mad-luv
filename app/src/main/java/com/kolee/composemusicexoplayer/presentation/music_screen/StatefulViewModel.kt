@@ -10,7 +10,7 @@ open class StatefulViewModel<T>(
     initState: T
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(initState)
+    val _uiState = MutableStateFlow(initState)
     val uiState: StateFlow<T> = _uiState.asStateFlow()
 
     protected fun updateState(newState: T.() -> T){

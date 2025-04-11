@@ -139,4 +139,9 @@ class PlayerViewModel @Inject constructor(
         updateState { copy(isPlayerExpanded = expanded) }
     }
 
+    fun getListenedSongs(): List<MusicEntity> {
+        return uiState.value.musicList
+            .filter { (it.lastPlayedAt ?: 0) > 0 }
+    }
+
 }

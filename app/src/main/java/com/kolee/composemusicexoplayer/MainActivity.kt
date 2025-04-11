@@ -102,6 +102,7 @@ class MainActivity : ComponentActivity() {
                                                 authViewModel = authViewModel,
                                                 playerViewModel = playerViewModel,
                                                 profileViewModel = profileViewModel,
+                                                userPreferences = UserPreferences(applicationContext),
                                             )
                                         }
                                     } else {
@@ -131,6 +132,7 @@ class MainActivity : ComponentActivity() {
                                                     authViewModel = authViewModel,
                                                     playerViewModel = playerViewModel,
                                                     profileViewModel = profileViewModel,
+                                                    userPreferences = UserPreferences(applicationContext)
                                                 )
                                             }
                                         }

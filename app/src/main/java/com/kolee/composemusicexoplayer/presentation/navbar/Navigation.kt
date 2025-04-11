@@ -10,6 +10,7 @@ import com.kolee.composemusicexoplayer.presentation.music_screen.MusicScreen
 import com.kolee.composemusicexoplayer.presentation.library.LibraryScreen
 import com.kolee.composemusicexoplayer.presentation.profil_screen.ProfileScreen
 import com.kolee.composemusicexoplayer.data.auth.AuthViewModel
+import com.kolee.composemusicexoplayer.data.auth.UserPreferences
 import com.kolee.composemusicexoplayer.data.profile.ProfileViewModel
 import com.kolee.composemusicexoplayer.presentation.MusicPlayerSheet.MusicPlayerSheet
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
@@ -21,16 +22,17 @@ fun Navigation(
     authViewModel: AuthViewModel,
     playerViewModel: PlayerViewModel,
     profileViewModel: ProfileViewModel,
+    userPreferences: UserPreferences,
 ) {
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
-            MusicScreen(playerVM = playerViewModel, navController)
+            MusicScreen(playerVM = playerViewModel,navController)
         }
         composable("library") {
             LibraryScreen(playerVM = playerViewModel, navController)
         }
         composable("profile") {
-            ProfileScreen(viewModel = profileViewModel)
+            ProfileScreen(viewModel = profileViewModel, playerViewModel, authViewModel)
         }
     }
 }

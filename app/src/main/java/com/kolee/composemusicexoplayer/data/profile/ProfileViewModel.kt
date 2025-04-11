@@ -25,6 +25,7 @@ class ProfileViewModel(private val userPreferences: UserPreferences) : ViewModel
                     return@launch
                 }
 
+
                 val bearerToken = "Bearer $token"
                 Log.d("ProfileVM", "Mengambil profil dengan token: $bearerToken")
 
@@ -44,14 +45,6 @@ class ProfileViewModel(private val userPreferences: UserPreferences) : ViewModel
             } catch (e: Exception) {
                 Log.e("ProfileVM", "Exception saat fetch profile: ${e.message}", e)
             }
-        }
-    }
-
-    fun logout() {
-        viewModelScope.launch {
-            userPreferences.setLoggedIn(false)
-            userPreferences.saveToken("")
-            userPreferences.saveRefreshToken("")
         }
     }
 }

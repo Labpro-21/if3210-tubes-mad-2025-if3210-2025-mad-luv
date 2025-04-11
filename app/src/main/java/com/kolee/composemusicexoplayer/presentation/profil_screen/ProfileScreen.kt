@@ -18,18 +18,27 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
-import coil.compose.rememberImagePainter
 import coil.request.ImageRequest
 import com.kolee.composemusicexoplayer.R
+import com.kolee.composemusicexoplayer.data.auth.AuthViewModel
 import com.kolee.composemusicexoplayer.data.profile.ProfileViewModel
+import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 
 @Composable
-fun ProfileScreen(viewModel: ProfileViewModel) {
+fun ProfileScreen(
+    viewModel: ProfileViewModel,
+    playerViewModel: PlayerViewModel,
+    authViewModel: AuthViewModel,
+) {
     val profileState by viewModel.profile.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.fetchProfile()
     }
+
+    val allSongs by remember { derivedStateOf { playerViewModel.uiState.value.musicList.size } }
+    val likedSongs by remember { derivedStateOf { playerViewModel.getLoved().size } }
+    val listenedSongs by remember { derivedStateOf { playerViewModel.getListenedSongs().size } }
 
     Column(
         modifier = Modifier
@@ -43,9 +52,9 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         profileState?.let { profile ->
+            val imageUrl = "http://34.101.226.132:3000/uploads/profile-picture/${profile.profilePhoto}"
 
             Box(contentAlignment = Alignment.BottomEnd) {
-                val imageUrl = "http://34.101.226.132:3000/uploads/profile-picture/${profile.profilePhoto}"
                 Image(
                     painter = rememberAsyncImagePainter(
                         ImageRequest.Builder(LocalContext.current)
@@ -62,7 +71,7 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
                 )
 
                 IconButton(
-                    onClick = { /* TODO: logika edit foto */ },
+                    onClick = { /* TODO:  */ },
                     modifier = Modifier
                         .offset(x = (-8).dp, y = (-8).dp)
                         .background(Color.White, CircleShape)
@@ -99,22 +108,22 @@ fun ProfileScreen(viewModel: ProfileViewModel) {
                     .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                ProfileStat(count = "135", label = "SONGS")
-                ProfileStat(count = "32", label = "LIKED")
-                ProfileStat(count = "50", label = "LISTENED")
+                ProfileStat(count = allSongs.toString(), label = "SONGS")
+                ProfileStat(count = likedSongs.toString(), label = "LIKED")
+                ProfileStat(count = listenedSongs.toString(), label = "LISTENED")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { viewModel.logout() }) {
+
+            Button(onClick = { authViewModel.logout() }) {
                 Text(text = "Logout")
             }
 
         } ?: run {
-            // Loading / Empty state
             CircularProgressIndicator(color = Color.White)
 
             Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { viewModel.logout() }) {
+            Button(onClick = { authViewModel.logout() }) {
                 Text(text = "Logout")
             }
         }

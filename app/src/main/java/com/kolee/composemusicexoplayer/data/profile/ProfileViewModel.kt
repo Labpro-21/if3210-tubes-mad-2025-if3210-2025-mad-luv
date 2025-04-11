@@ -16,8 +16,14 @@ class ProfileViewModel(private val userPreferences: UserPreferences) : ViewModel
     private val _profile = MutableStateFlow<ProfileResponse?>(null)
     val profile = _profile.asStateFlow()
 
+    fun resetProfile() {
+        _profile.value = null
+    }
+
     fun fetchProfile() {
         viewModelScope.launch {
+            _profile.value = null
+
             try {
                 val token = userPreferences.getToken.first()
                 if (token.isNullOrEmpty()) {

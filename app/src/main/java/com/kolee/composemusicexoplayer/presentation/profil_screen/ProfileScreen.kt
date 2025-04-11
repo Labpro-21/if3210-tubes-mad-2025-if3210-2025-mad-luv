@@ -21,18 +21,23 @@ import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.kolee.composemusicexoplayer.R
 import com.kolee.composemusicexoplayer.data.auth.AuthViewModel
+import com.kolee.composemusicexoplayer.data.network.NetworkSensing
 import com.kolee.composemusicexoplayer.data.profile.ProfileViewModel
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
+import com.kolee.composemusicexoplayer.presentation.component.NetworkSensingScreen
 
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel,
     playerViewModel: PlayerViewModel,
     authViewModel: AuthViewModel,
+    networkSensing: NetworkSensing
 ) {
+    val isConnected by networkSensing.isConnected.collectAsState(initial = true)
     val profileState by viewModel.profile.collectAsState()
 
     LaunchedEffect(Unit) {
+        viewModel.resetProfile()
         viewModel.fetchProfile()
     }
 
@@ -40,91 +45,99 @@ fun ProfileScreen(
     val likedSongs by remember { derivedStateOf { playerViewModel.getLoved().size } }
     val listenedSongs by remember { derivedStateOf { playerViewModel.getListenedSongs().size } }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFF015871), Color.Black)
-                )
-            )
-            .padding(top = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    NetworkSensingScreen(
+        networkSensing = networkSensing,
+        showFallbackPage = !isConnected && profileState == null
     ) {
-        profileState?.let { profile ->
-            val imageUrl = "http://34.101.226.132:3000/uploads/profile-picture/${profile.profilePhoto}"
-
-            Box(contentAlignment = Alignment.BottomEnd) {
-                Image(
-                    painter = rememberAsyncImagePainter(
-                        ImageRequest.Builder(LocalContext.current)
-                            .data(imageUrl)
-                            .placeholder(R.drawable.profile)
-                            .error(R.drawable.profile)
-                            .build()
-                    ),
-                    contentDescription = "Profile Image",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                )
-
-                IconButton(
-                    onClick = { /* TODO:  */ },
-                    modifier = Modifier
-                        .offset(x = (-8).dp, y = (-8).dp)
-                        .background(Color.White, CircleShape)
-                        .size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit Profile Picture",
-                        tint = Color.Black,
-                        modifier = Modifier.size(16.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0xFF015871), Color.Black)
                     )
+                )
+                .padding(top = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            profileState?.let { profile ->
+
+                val imageUrl by remember(profile.profilePhoto) {
+                    mutableStateOf("http://34.101.226.132:3000/uploads/profile-picture/${profile.profilePhoto}")
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Box(contentAlignment = Alignment.BottomEnd) {
+                    Image(
+                        painter = rememberAsyncImagePainter(
+                            ImageRequest.Builder(LocalContext.current)
+                                .data(imageUrl)
+                                .placeholder(R.drawable.profile)
+                                .error(R.drawable.profile)
+                                .build()
+                        ),
+                        contentDescription = "Profile Image",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                    )
 
-            Text(text = profile.username, fontSize = 20.sp, color = Color.White)
-            Text(text = profile.location, color = Color.LightGray)
+                    IconButton(
+                        onClick = { /* TODO: Edit profile picture */ },
+                        modifier = Modifier
+                            .offset(x = (-8).dp, y = (-8).dp)
+                            .background(Color.White, CircleShape)
+                            .size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Profile Picture",
+                            tint = Color.Black,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
-                onClick = { /* TODO:  */ },
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color.DarkGray)
-            ) {
-                Text(text = "Edit Profile", color = Color.White)
-            }
+                Text(text = profile.username, fontSize = 20.sp, color = Color.White)
+                Text(text = profile.location, color = Color.LightGray)
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                ProfileStat(count = allSongs.toString(), label = "SONGS")
-                ProfileStat(count = likedSongs.toString(), label = "LIKED")
-                ProfileStat(count = listenedSongs.toString(), label = "LISTENED")
-            }
+                Button(
+                    onClick = { /* TODO: Edit Profile */ },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.DarkGray)
+                ) {
+                    Text(text = "Edit Profile", color = Color.White)
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-            Button(onClick = { authViewModel.logout() }) {
-                Text(text = "Logout")
-            }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    ProfileStat(count = allSongs.toString(), label = "SONGS")
+                    ProfileStat(count = likedSongs.toString(), label = "LIKED")
+                    ProfileStat(count = listenedSongs.toString(), label = "LISTENED")
+                }
 
-        } ?: run {
-            CircularProgressIndicator(color = Color.White)
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { authViewModel.logout() }) {
-                Text(text = "Logout")
+                Button(onClick = { authViewModel.logout() }) {
+                    Text(text = "Logout")
+                }
+
+            } ?: run {
+                CircularProgressIndicator(color = Color.White)
+
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { authViewModel.logout() }) {
+                    Text(text = "Logout")
+                }
             }
         }
     }

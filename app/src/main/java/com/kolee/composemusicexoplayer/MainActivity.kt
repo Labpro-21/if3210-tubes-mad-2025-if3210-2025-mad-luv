@@ -35,6 +35,7 @@ import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.navigation.compose.rememberNavController
 import com.kolee.composemusicexoplayer.data.auth.UserPreferences
+import com.kolee.composemusicexoplayer.data.network.NetworkSensing
 
 
 @AndroidEntryPoint
@@ -74,6 +75,7 @@ class MainActivity : ComponentActivity() {
                         )
                         val bottomSheetNavigator = remember { BottomSheetNavigator(sheetState) }
                         val navController = rememberNavController(bottomSheetNavigator)
+                        val networkSensing = remember { NetworkSensing(applicationContext) }
 
                         val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
                         val bottomNavItems = listOf(
@@ -89,6 +91,7 @@ class MainActivity : ComponentActivity() {
                                 val configuration = LocalConfiguration.current
                                 val isPortrait = configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
 
+
                                 val playerViewModel: PlayerViewModel = hiltViewModel()
                                 val scaffoldContent: @Composable (PaddingValues) -> Unit = { innerPadding ->
                                     if (isPortrait) {
@@ -102,7 +105,7 @@ class MainActivity : ComponentActivity() {
                                                 authViewModel = authViewModel,
                                                 playerViewModel = playerViewModel,
                                                 profileViewModel = profileViewModel,
-                                                userPreferences = UserPreferences(applicationContext),
+                                                networkSensing = networkSensing
                                             )
                                         }
                                     } else {
@@ -132,7 +135,7 @@ class MainActivity : ComponentActivity() {
                                                     authViewModel = authViewModel,
                                                     playerViewModel = playerViewModel,
                                                     profileViewModel = profileViewModel,
-                                                    userPreferences = UserPreferences(applicationContext)
+                                                    networkSensing = networkSensing
                                                 )
                                             }
                                         }

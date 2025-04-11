@@ -19,18 +19,21 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.NavHostController
+import com.kolee.composemusicexoplayer.data.network.NetworkSensing
 import com.kolee.composemusicexoplayer.data.roomdb.MusicEntity
 import com.kolee.composemusicexoplayer.presentation.MusicPlayerSheet.MusicPlayerSheet
 import com.kolee.composemusicexoplayer.presentation.component.BottomMusicPlayerHeight
 import com.kolee.composemusicexoplayer.presentation.component.BottomMusicPlayerImpl
 import com.kolee.composemusicexoplayer.presentation.component.MusicItem
+import com.kolee.composemusicexoplayer.presentation.component.NetworkSensingScreen
 
 private const val TAG = "MusicScreen"
 
 @Composable
 fun MusicScreen(
     playerVM: PlayerViewModel = hiltViewModel(),
-    navController: NavHostController
+    navController: NavHostController,
+    networkSensing: NetworkSensing
 ) {
     val context = LocalContext.current
     val musicUiState by playerVM.uiState.collectAsState()
@@ -43,51 +46,55 @@ fun MusicScreen(
 
     }
 
-
-    Box(
-        modifier = Modifier
-            .statusBarsPadding()
-            .fillMaxSize()
+    NetworkSensingScreen(
+        networkSensing = networkSensing,
+//        showFallbackPage = !isConnected && profileState == null
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            MusicSection(
-                title = "New Songs",
-                musicList = musicUiState.musicList.reversed(),
-                isHorizontal = true,
-                musicUiState = musicUiState,
-                onSelectedMusic = { playerVM.onEvent(PlayerEvent.Play(it)) }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Recently Played
-            MusicSection(
-                title = "Recently Played",
-                musicList = playerVM.getRecentlyPlayed(),
-                isHorizontal = false,
-                musicUiState = musicUiState,
-                onSelectedMusic = { playerVM.onEvent(PlayerEvent.Play(it)) }
-            )
-
-
-        }
-
-        if (isMusicPlaying) {
-            if (open) {
-                MusicPlayerSheet(
-                    playerVM = playerVM,
-                    navController = navController,
-                    onCollapse = { playerVM.setPlayerExpanded(false) }
-                )
-            } else {
-                BottomMusicPlayerImpl(
-                    playerVM = playerVM,
+        Box(
+            modifier = Modifier
+                .statusBarsPadding()
+                .fillMaxSize()
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                MusicSection(
+                    title = "New Songs",
+                    musicList = musicUiState.musicList.reversed(),
+                    isHorizontal = true,
                     musicUiState = musicUiState,
-                    onPlayPauseClicked = {
-                        playerVM.onEvent(PlayerEvent.PlayPause(isMusicPlaying))
-                    },
-                    onExpand = {playerVM.setPlayerExpanded(true) }
+                    onSelectedMusic = { playerVM.onEvent(PlayerEvent.Play(it)) }
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Recently Played
+                MusicSection(
+                    title = "Recently Played",
+                    musicList = playerVM.getRecentlyPlayed(),
+                    isHorizontal = false,
+                    musicUiState = musicUiState,
+                    onSelectedMusic = { playerVM.onEvent(PlayerEvent.Play(it)) }
+                )
+
+
+            }
+
+            if (isMusicPlaying) {
+                if (open) {
+                    MusicPlayerSheet(
+                        playerVM = playerVM,
+                        navController = navController,
+                        onCollapse = { playerVM.setPlayerExpanded(false) }
+                    )
+                } else {
+                    BottomMusicPlayerImpl(
+                        playerVM = playerVM,
+                        musicUiState = musicUiState,
+                        onPlayPauseClicked = {
+                            playerVM.onEvent(PlayerEvent.PlayPause(isMusicPlaying))
+                        },
+                        onExpand = {playerVM.setPlayerExpanded(true) }
+                    )
+                }
             }
         }
     }

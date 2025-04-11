@@ -61,6 +61,8 @@ import com.kolee.composemusicexoplayer.presentation.component.BottomMusicPlayerI
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerEvent
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 import com.bumptech.glide.Glide
+import com.kolee.composemusicexoplayer.data.network.NetworkSensing
+import com.kolee.composemusicexoplayer.presentation.component.NetworkSensingScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -154,207 +156,213 @@ fun ToggleTab(title: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 fun LibraryScreen(
     playerVM: PlayerViewModel = hiltViewModel(),
-    navController: NavHostController
+    navController: NavHostController,
+    networkSensing: NetworkSensing
 ) {
-    val musicUiState by playerVM.uiState.collectAsState()
-    val allSongs = musicUiState.musicList
-    val likedSongs = allSongs.filter { it.loved }
+    NetworkSensingScreen(
+        networkSensing = networkSensing,
+        showFallbackPage = false
+    ) {
+        val musicUiState by playerVM.uiState.collectAsState()
+        val allSongs = musicUiState.musicList
+        val likedSongs = allSongs.filter { it.loved }
 
-    var selectedTab by remember { mutableStateOf("All") }
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+        var selectedTab by remember { mutableStateOf("All") }
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
 
-    var showAddSongDrawer by remember { mutableStateOf(false) }
+        var showAddSongDrawer by remember { mutableStateOf(false) }
 
-    var showSuccessToast by remember { mutableStateOf(false) }
-    var showErrorToast by remember { mutableStateOf(false) }
-    var toastMessage by remember { mutableStateOf("") }
+        var showSuccessToast by remember { mutableStateOf(false) }
+        var showErrorToast by remember { mutableStateOf(false) }
+        var toastMessage by remember { mutableStateOf("") }
 
-    val songsToDisplay = when (selectedTab) {
-        "Liked" -> likedSongs
-        else -> allSongs
-    }
-
-    val recyclerViewRef = remember { mutableStateOf<RecyclerView?>(null) }
-
-    val adapter = remember {
-        MusicAdapter(songsToDisplay) { music ->
-            playerVM.onEvent(PlayerEvent.Play(music))
+        val songsToDisplay = when (selectedTab) {
+            "Liked" -> likedSongs
+            else -> allSongs
         }
-    }
 
-    LaunchedEffect(songsToDisplay) {
-        adapter.updateList(songsToDisplay)
-    }
+        val recyclerViewRef = remember { mutableStateOf<RecyclerView?>(null) }
 
-    LaunchedEffect(musicUiState.currentPlayedMusic) {
-        adapter.updatePlayingSong(musicUiState.currentPlayedMusic.audioId)
-    }
-
-    LaunchedEffect(showSuccessToast, showErrorToast) {
-        if (showSuccessToast || showErrorToast) {
-            delay(3000)
-            showSuccessToast = false
-            showErrorToast = false
+        val adapter = remember {
+            MusicAdapter(songsToDisplay) { music ->
+                playerVM.onEvent(PlayerEvent.Play(music))
+            }
         }
-    }
 
-    val showHeaderAndTab = !musicUiState.isPlayerExpanded || !musicUiState.isBottomPlayerShow
+        LaunchedEffect(songsToDisplay) {
+            adapter.updateList(songsToDisplay)
+        }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+        LaunchedEffect(musicUiState.currentPlayedMusic) {
+            adapter.updatePlayingSong(musicUiState.currentPlayedMusic.audioId)
+        }
 
-        if (showHeaderAndTab) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.Black)
-                    .zIndex(1f)
-            ) {
-                // Header
-                Row(
+        LaunchedEffect(showSuccessToast, showErrorToast) {
+            if (showSuccessToast || showErrorToast) {
+                delay(3000)
+                showSuccessToast = false
+                showErrorToast = false
+            }
+        }
+
+        val showHeaderAndTab = !musicUiState.isPlayerExpanded || !musicUiState.isBottomPlayerShow
+
+        Box(modifier = Modifier.fillMaxSize()) {
+
+            if (showHeaderAndTab) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .background(Color.Black)
+                        .zIndex(1f)
                 ) {
-                    Text(
-                        text = "Your Library",
-                        style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White
+                    // Header
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Your Library",
+                            style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold),
+                            color = Color.White
+                        )
+                        IconButton(onClick = { showAddSongDrawer = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Add", tint = Color.White)
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ToggleTab("All", selectedTab == "All") { selectedTab = "All" }
+                        ToggleTab("Liked", selectedTab == "Liked") { selectedTab = "Liked" }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+
+            AndroidView(
+                factory = { ctx ->
+                    RecyclerView(ctx).apply {
+                        layoutManager = LinearLayoutManager(ctx)
+                        this.adapter = adapter
+                        recyclerViewRef.value = this
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        top = if (showHeaderAndTab) 104.dp else 0.dp,
+                        bottom = BottomMusicPlayerHeight.value
                     )
-                    IconButton(onClick = { showAddSongDrawer = true }) {
-                        Icon(Icons.Default.Add, contentDescription = "Add", tint = Color.White)
+            )
+
+            if (musicUiState.currentPlayedMusic != MusicEntity.default) {
+                if (musicUiState.isPlayerExpanded) {
+                    MusicPlayerSheet(
+                        playerVM = playerVM,
+                        navController = navController,
+                        onCollapse = { playerVM.setPlayerExpanded(false) }
+                    )
+                } else {
+                    BottomMusicPlayerImpl(
+                        playerVM = playerVM,
+                        musicUiState = musicUiState,
+                        onPlayPauseClicked = {
+                            playerVM.onEvent(PlayerEvent.PlayPause(musicUiState.isPlaying))
+                        },
+                        onExpand = { playerVM.setPlayerExpanded(true) }
+                    )
+                }
+            }
+
+            AnimatedVisibility(
+                visible = showSuccessToast,
+                enter = slideInVertically(initialOffsetY = { -it }),
+                exit = slideOutVertically(targetOffsetY = { -it }),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 16.dp)
+                    .zIndex(10f)
+            ) {
+                Card(
+                    backgroundColor = Color(0xFF1ED760),
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = 4.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Success",
+                            tint = Color.Black
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = toastMessage,
+                            color = Color.Black,
+                            style = MaterialTheme.typography.body1
+                        )
                     }
                 }
-
-                Row(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ToggleTab("All", selectedTab == "All") { selectedTab = "All" }
-                    ToggleTab("Liked", selectedTab == "Liked") { selectedTab = "Liked" }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
             }
-        }
 
-        AndroidView(
-            factory = { ctx ->
-                RecyclerView(ctx).apply {
-                    layoutManager = LinearLayoutManager(ctx)
-                    this.adapter = adapter
-                    recyclerViewRef.value = this
-                }
-            },
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(
-                    top = if (showHeaderAndTab) 104.dp else 0.dp,
-                    bottom = BottomMusicPlayerHeight.value
-                )
-        )
-
-        if (musicUiState.currentPlayedMusic != MusicEntity.default) {
-            if (musicUiState.isPlayerExpanded) {
-                MusicPlayerSheet(
-                    playerVM = playerVM,
-                    navController = navController,
-                    onCollapse = { playerVM.setPlayerExpanded(false) }
-                )
-            } else {
-                BottomMusicPlayerImpl(
-                    playerVM = playerVM,
-                    musicUiState = musicUiState,
-                    onPlayPauseClicked = {
-                        playerVM.onEvent(PlayerEvent.PlayPause(musicUiState.isPlaying))
-                    },
-                    onExpand = { playerVM.setPlayerExpanded(true) }
-                )
-            }
-        }
-
-        AnimatedVisibility(
-            visible = showSuccessToast,
-            enter = slideInVertically(initialOffsetY = { -it }),
-            exit = slideOutVertically(targetOffsetY = { -it }),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 16.dp)
-                .zIndex(10f)
-        ) {
-            Card(
-                backgroundColor = Color(0xFF1ED760),
-                shape = RoundedCornerShape(8.dp),
-                elevation = 4.dp
+            AnimatedVisibility(
+                visible = showErrorToast,
+                enter = slideInVertically(initialOffsetY = { -it }),
+                exit = slideOutVertically(targetOffsetY = { -it }),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 16.dp)
+                    .zIndex(10f)
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Card(
+                    backgroundColor = Color.Red,
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = 4.dp
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Success",
-                        tint = Color.Black
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = toastMessage,
-                        color = Color.Black,
-                        style = MaterialTheme.typography.body1
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Error",
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = toastMessage,
+                            color = Color.White,
+                            style = MaterialTheme.typography.body1
+                        )
+                    }
                 }
             }
-        }
 
-        AnimatedVisibility(
-            visible = showErrorToast,
-            enter = slideInVertically(initialOffsetY = { -it }),
-            exit = slideOutVertically(targetOffsetY = { -it }),
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 16.dp)
-                .zIndex(10f)
-        ) {
-            Card(
-                backgroundColor = Color.Red,
-                shape = RoundedCornerShape(8.dp),
-                elevation = 4.dp
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Error",
-                        tint = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = toastMessage,
-                        color = Color.White,
-                        style = MaterialTheme.typography.body1
-                    )
-                }
-            }
+            AddSongDrawer(
+                visible = showAddSongDrawer,
+                onDismiss = { showAddSongDrawer = false },
+                onSongAdded = { success, message ->
+                    toastMessage = message
+                    if (success) {
+                        showSuccessToast = true
+                        showAddSongDrawer = false
+                    } else {
+                        showErrorToast = true
+                    }
+                },
+                playerViewModel = playerVM
+            )
         }
-
-        AddSongDrawer(
-            visible = showAddSongDrawer,
-            onDismiss = { showAddSongDrawer = false },
-            onSongAdded = { success, message ->
-                toastMessage = message
-                if (success) {
-                    showSuccessToast = true
-                    showAddSongDrawer = false
-                } else {
-                    showErrorToast = true
-                }
-            },
-            playerViewModel = playerVM
-        )
     }
 }
 

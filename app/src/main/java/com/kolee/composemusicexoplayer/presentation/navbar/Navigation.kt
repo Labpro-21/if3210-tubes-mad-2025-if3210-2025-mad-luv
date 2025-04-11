@@ -30,7 +30,7 @@ fun Navigation(
             MusicScreen(playerVM = playerViewModel,navController, networkSensing)
         }
         composable("library") {
-            LibraryScreen(playerVM = playerViewModel, navController)
+            LibraryScreen(playerVM = playerViewModel, navController, networkSensing)
         }
         composable("profile") {
             ProfileScreen(viewModel = profileViewModel, playerViewModel, authViewModel, networkSensing)

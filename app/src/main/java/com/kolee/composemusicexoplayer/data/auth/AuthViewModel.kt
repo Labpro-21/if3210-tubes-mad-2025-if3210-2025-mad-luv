@@ -7,10 +7,12 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import androidx.work.*
-import com.kolee.composemusicexoplayer.worker.TokenRefreshWorker
+import kotlinx.coroutines.delay
+import com.kolee.composemusicexoplayer.data.network.ApiClient
+import com.kolee.composemusicexoplayer.data.network.ApiClient.apiService
+import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
-
+import androidx.work.ListenableWorker.Result
 
 class AuthViewModel(private val context: Context) : ViewModel() {
     private val userPreferences = UserPreferences(context)
@@ -23,10 +25,16 @@ class AuthViewModel(private val context: Context) : ViewModel() {
     val userName = _userName.asStateFlow()
     val email = _email.asStateFlow()
 
+    private var loginTimestamp: Long = 0
+    private val refreshDelayMillis = TimeUnit.MINUTES.toMillis(5)
+
     init {
         viewModelScope.launch {
             userPreferences.isLoggedIn.collect { loggedIn ->
                 _isLoggedIn.value = loggedIn
+                if (loggedIn) {
+                    startTokenRefreshTimer()
+                }
             }
         }
         viewModelScope.launch {
@@ -39,7 +47,6 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                 _email.value = it ?: ""
             }
         }
-
     }
 
     fun login(email: String, password: String, onResult: (Boolean) -> Unit) {
@@ -54,7 +61,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                         val name = email.substringBefore("@")
                         userPreferences.saveUserInfo(name, email)
                         setLoggedIn(true)
-                        scheduleTokenRefreshWorker()
+                        loginTimestamp = System.currentTimeMillis()
                         onResult(true)
                     } ?: onResult(false)
                 } else {
@@ -79,21 +86,50 @@ class AuthViewModel(private val context: Context) : ViewModel() {
             userPreferences.setLoggedIn(false)
             userPreferences.saveToken("")
             userPreferences.saveRefreshToken("")
-            WorkManager.getInstance(context).cancelUniqueWork("TokenRefreshWorker")
         }
     }
 
-    private fun scheduleTokenRefreshWorker() {
-        val workRequest = PeriodicWorkRequestBuilder<TokenRefreshWorker>(
-            15, TimeUnit.MINUTES
-        ).build()
-
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-            "TokenRefreshWorker",
-            ExistingPeriodicWorkPolicy.KEEP,
-            workRequest
-        )
+    private fun startTokenRefreshTimer() {
+        viewModelScope.launch {
+            while (_isLoggedIn.value) {
+                delay(refreshDelayMillis)
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - loginTimestamp >= refreshDelayMillis) {
+                    Log.d("AuthViewModel", "Refreshing token after 5 minutes.")
+                    refreshToken()
+                }
+            }
+        }
     }
 
-
+    private suspend fun refreshToken() {
+        val token = userPreferences.getToken.first()
+        val refreshToken = userPreferences.getRefreshToken.first()
+        if (!token.isNullOrBlank()) {
+            val verifyResponse = apiService.verifyToken("Bearer $token")
+            if (verifyResponse.isSuccessful) {
+                Log.d("AuthViewModel", "Token is still valid.")
+                Result.success()
+            } else if (verifyResponse.code() == 403) {
+                try {
+                    val newTokenResponse = apiService.refreshToken(mapOf("refreshToken" to refreshToken!!))
+                    userPreferences.saveToken(newTokenResponse.accessToken)
+                    userPreferences.saveRefreshToken(newTokenResponse.refreshToken)
+                    Log.d("TokenRefresh", "Refreshing token with: $refreshToken")
+                    Result.success()
+                } catch (e: Exception) {
+                    Log.e("AuthViewModel", "Error refreshing token: ${e.message}")
+                    logout()
+                    Result.retry()
+                }
+            } else {
+                logout()
+                Result.retry()
+            }
+        } else {
+            Log.e("AuthViewModel", "No valid token available for refresh.")
+            logout()
+            Result.retry()
+        }
+    }
 }

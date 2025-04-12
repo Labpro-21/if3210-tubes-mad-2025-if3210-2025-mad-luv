@@ -189,6 +189,10 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         _allMusics.emit(musicList)
     }
 
+    suspend fun deleteMusic(music: MusicEntity) {
+        musicRepository.deleteMusics(music)
+    }
+
     suspend fun next() {
         val currentIndex = allMusics.value.indexOfFirst {
             it.audioId == currentPlayedMusic.value.audioId

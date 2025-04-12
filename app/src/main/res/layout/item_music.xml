@@ -25,8 +25,6 @@
             android:adjustViewBounds="true"
             android:scaleType="centerCrop"
             android:src="@drawable/ic_music_unknown" />
-<!--            android:background="@drawable/rounded_image" -->
-
 
         <LinearLayout
             android:layout_width="0dp"
@@ -55,11 +53,28 @@
                 android:maxLines="1" />
         </LinearLayout>
 
+        <!-- Edit Button -->
         <ImageView
-            android:id="@+id/imageWave"
+            android:id="@+id/imageEdit"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/audio_lines"
-            android:visibility="gone" />
+            android:src="@drawable/baseline_edit"
+            android:layout_gravity="end"
+            android:contentDescription="Edit"
+            android:paddingStart="8dp"
+            android:clickable="true"
+            android:focusable="true"/>
+
+        <!-- Delete Button -->
+        <ImageView
+            android:id="@+id/imageDelete"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/baseline_delete"
+            android:layout_gravity="end"
+            android:contentDescription="Delete"
+            android:clickable="true"
+            android:focusable="true"/>
+
     </LinearLayout>
 </androidx.cardview.widget.CardView>

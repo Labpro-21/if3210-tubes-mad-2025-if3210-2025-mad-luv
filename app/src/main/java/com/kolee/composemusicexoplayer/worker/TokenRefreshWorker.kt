@@ -36,12 +36,21 @@ class TokenRefreshWorker(
                 Log.d("TokenRefreshWorker", "Refreshing token with: $refreshToken")
                 Result.success()
             } else {
+                logoutUser()
                 Result.retry()
             }
         } catch (e: Exception) {
+            logoutUser()
             e.printStackTrace()
             Result.retry()
         }
+    }
+
+    private suspend fun logoutUser() {
+        userPreferences.setLoggedIn(false)
+        userPreferences.saveToken("")
+        userPreferences.saveRefreshToken("")
+        Log.d("TokenRefreshWorker", "User logged out due to expired token.")
     }
 
 }

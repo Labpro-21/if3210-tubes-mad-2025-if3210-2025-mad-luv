@@ -45,6 +45,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -69,7 +71,9 @@ import kotlinx.coroutines.delay
 
 class MusicAdapter(
     private var musicList: List<MusicEntity>,
-    private val onItemClick: (MusicEntity) -> Unit
+    private val onItemClick: (MusicEntity) -> Unit,
+    private val onEdit: (MusicEntity) -> Unit,
+    private val onDelete: (MusicEntity) -> Unit
 ) : RecyclerView.Adapter<MusicAdapter.MusicViewHolder>() {
 
     private var currentlyPlayingId: Long? = null
@@ -79,7 +83,8 @@ class MusicAdapter(
         val imageCover: ImageView = view.findViewById(R.id.imageCover)
         val textTitle: TextView = view.findViewById(R.id.textTitle)
         val textArtist: TextView = view.findViewById(R.id.textArtist)
-        val imageWave: ImageView = view.findViewById(R.id.imageWave)
+        val editButton: ImageView = view.findViewById(R.id.imageEdit)
+        val deleteButton: ImageView = view.findViewById(R.id.imageDelete)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MusicViewHolder {
@@ -106,7 +111,6 @@ class MusicAdapter(
 
 
         val isPlaying = music.audioId == currentlyPlayingId
-        holder.imageWave.visibility = if (isPlaying) View.VISIBLE else View.GONE
 
         val primaryColor = holder.itemView.context.getColor(R.color.spotify_green)
         val defaultTitleColor = holder.itemView.context.getColor(android.R.color.white)
@@ -118,6 +122,15 @@ class MusicAdapter(
         holder.card.setOnClickListener {
             onItemClick(music)
         }
+
+        holder.editButton.setOnClickListener {
+            onEdit(music)
+        }
+        holder.deleteButton.setOnClickListener {
+            onDelete(music)
+        }
+
+
     }
 
     override fun getItemCount(): Int = musicList.size
@@ -156,6 +169,27 @@ fun ToggleTab(title: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
+
+fun onEditSong(context: Context, playerVM: PlayerViewModel, music: MusicEntity) {
+    Toast.makeText(context, "Edit song: ${music.title}", Toast.LENGTH_SHORT).show()
+    playerVM.onEvent(PlayerEvent.EditMusic(music.copy(title = "New Title", artist = "New Artist")))
+}
+
+fun onDeleteSong(context: Context, playerVM: PlayerViewModel, music: MusicEntity) {
+    val alertDialog = android.app.AlertDialog.Builder(context)
+        .setTitle("Delete Song")
+        .setMessage("Are you sure you want to delete ${music.title}?")
+        .setPositiveButton("Yes") { _, _ ->
+            playerVM.onEvent(PlayerEvent.DeleteMusic(music))
+            Toast.makeText(context, "${music.title} deleted", Toast.LENGTH_SHORT).show()
+        }
+        .setNegativeButton("No", null)
+        .create()
+
+    alertDialog.show()
+}
+
+
 @Composable
 fun LibraryScreen(
     playerVM: PlayerViewModel = hiltViewModel(),
@@ -175,6 +209,8 @@ fun LibraryScreen(
         val scope = rememberCoroutineScope()
 
         var showAddSongDrawer by remember { mutableStateOf(false) }
+        var showEditSongForm by remember { mutableStateOf(false) }
+        var currentMusicToEdit by remember { mutableStateOf<MusicEntity?>(null) }
 
         var showSuccessToast by remember { mutableStateOf(false) }
         var showErrorToast by remember { mutableStateOf(false) }
@@ -188,9 +224,15 @@ fun LibraryScreen(
         val recyclerViewRef = remember { mutableStateOf<RecyclerView?>(null) }
 
         val adapter = remember {
-            MusicAdapter(songsToDisplay) { music ->
-                playerVM.onEvent(PlayerEvent.Play(music))
-            }
+            MusicAdapter(
+                musicList = songsToDisplay,
+                onItemClick = { music -> playerVM.onEvent(PlayerEvent.Play(music)) },
+                onEdit = { music ->
+                    currentMusicToEdit = music
+                    showEditSongForm = true
+                },
+                onDelete = { music -> onDeleteSong(context, playerVM, music) }
+            )
         }
 
         LaunchedEffect(songsToDisplay) {
@@ -212,7 +254,6 @@ fun LibraryScreen(
         val showHeaderAndTab = !musicUiState.isPlayerExpanded || !musicUiState.isBottomPlayerShow
 
         Box(modifier = Modifier.fillMaxSize()) {
-
             if (showHeaderAndTab) {
                 Column(
                     modifier = Modifier
@@ -265,6 +306,17 @@ fun LibraryScreen(
                         bottom = BottomMusicPlayerHeight.value
                     )
             )
+
+            if (showEditSongForm && currentMusicToEdit != null) {
+                EditSongForm(
+                    currentMusic = currentMusicToEdit!!,
+                    onDismiss = { showEditSongForm = false },
+                    onSave = { updatedMusic ->
+                        playerVM.onEvent(PlayerEvent.EditMusic(updatedMusic))
+                        showEditSongForm = false
+                    }
+                )
+            }
 
             if (musicUiState.currentPlayedMusic != MusicEntity.default) {
                 if (musicUiState.isPlayerExpanded) {
@@ -365,6 +417,163 @@ fun LibraryScreen(
                 },
                 playerViewModel = playerVM
             )
+        }
+    }
+}
+
+@Composable
+fun EditSongForm(
+    currentMusic: MusicEntity,
+    onDismiss: () -> Unit,
+    onSave: (MusicEntity) -> Unit
+) {
+    var newTitle by remember { mutableStateOf(currentMusic.title) }
+    var newArtist by remember { mutableStateOf(currentMusic.artist) }
+    var isTitleValid by remember { mutableStateOf(true) }
+    var isArtistValid by remember { mutableStateOf(true) }
+
+    fun validate(): Boolean {
+        isTitleValid = newTitle.isNotEmpty()
+        isArtistValid = newArtist.isNotEmpty()
+        return isTitleValid && isArtistValid
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(8.dp),
+            color = Color(0xFF121212),
+            elevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp)
+            ) {
+                // Header
+                Text(
+                    text = "Edit Song",
+                    style = MaterialTheme.typography.h6.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+
+                // Song Title Input
+                OutlinedTextField(
+                    value = newTitle,
+                    onValueChange = { newTitle = it },
+                    label = {
+                        Text(
+                            "Song Title",
+                            color = Color(0xFFB3B3B3)
+                        )
+                    },
+                    textStyle = LocalTextStyle.current.copy(color = Color.White),
+                    isError = !isTitleValid,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        textColor = Color.White,
+                        cursorColor = Color(0xFF1ED760),
+                        focusedBorderColor = Color(0xFF1ED760),
+                        unfocusedBorderColor = Color(0xFF535353),
+                        focusedLabelColor = Color(0xFF1ED760),
+                        unfocusedLabelColor = Color(0xFFB3B3B3)
+                    ),
+                    singleLine = true
+                )
+                if (!isTitleValid) {
+                    Text(
+                        text = "Title cannot be empty",
+                        color = Color(0xFFE22134),
+                        style = MaterialTheme.typography.caption,
+                        modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Song Artist Input
+                OutlinedTextField(
+                    value = newArtist,
+                    onValueChange = { newArtist = it },
+                    label = {
+                        Text(
+                            "Artist",
+                            color = Color(0xFFB3B3B3)
+                        )
+                    },
+                    textStyle = LocalTextStyle.current.copy(color = Color.White),
+                    isError = !isArtistValid,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        textColor = Color.White,
+                        cursorColor = Color(0xFF1ED760),
+                        focusedBorderColor = Color(0xFF1ED760),
+                        unfocusedBorderColor = Color(0xFF535353),
+                        focusedLabelColor = Color(0xFF1ED760),
+                        unfocusedLabelColor = Color(0xFFB3B3B3)
+                    ),
+                    singleLine = true
+                )
+                if (!isArtistValid) {
+                    Text(
+                        text = "Artist cannot be empty",
+                        color = Color(0xFFE22134),
+                        style = MaterialTheme.typography.caption,
+                        modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = Color(0xFFB3B3B3)
+                        )
+                    ) {
+                        Text("CANCEL")
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Button(
+                        onClick = {
+                            if (validate()) {
+                                onSave(currentMusic.copy(title = newTitle, artist = newArtist))
+                                onDismiss()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = Color(0xFF1ED760),
+                            contentColor = Color.Black
+                        ),
+                        shape = RoundedCornerShape(50),
+                        elevation = ButtonDefaults.elevation(
+                            defaultElevation = 0.dp,
+                            pressedElevation = 0.dp
+                        )
+                    ) {
+                        Text(
+                            "SAVE",
+                            style = MaterialTheme.typography.button.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.padding(horizontal = 24.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }

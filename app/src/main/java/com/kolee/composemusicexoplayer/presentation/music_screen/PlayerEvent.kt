@@ -14,5 +14,7 @@ sealed interface PlayerEvent {
     data class SnapTo(val duration: Long) : PlayerEvent
     data class addMusic(val music: MusicEntity) : PlayerEvent
     data class updateMusicList(val musicList: List<MusicEntity>) : PlayerEvent
-    data class UpdateProgress(val newDuration: Long) : PlayerEvent // New event to handle progress update
+    data class UpdateProgress(val newDuration: Long) : PlayerEvent
+    data class EditMusic(val updatedMusic: MusicEntity) : PlayerEvent
+    data class DeleteMusic(val music: MusicEntity) : PlayerEvent
 }

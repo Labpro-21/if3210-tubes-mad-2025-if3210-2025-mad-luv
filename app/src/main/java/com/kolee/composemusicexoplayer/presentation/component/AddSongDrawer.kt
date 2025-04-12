@@ -93,7 +93,7 @@ fun AddSongDrawer(
     ) {
         Surface(
             modifier = modifier.fillMaxWidth(1f)
-                .heightIn(max = 600.dp) 
+                .heightIn(max = 600.dp)
                 .offset(y = 250.dp),
             color = MaterialTheme.colors.background,
             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),

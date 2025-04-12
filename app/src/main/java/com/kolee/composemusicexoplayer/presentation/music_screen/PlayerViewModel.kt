@@ -113,6 +113,43 @@ class PlayerViewModel @Inject constructor(
                 viewModelScope.launch { environment.addMusicAndRefresh(event.music) }
             }
 
+            is PlayerEvent.EditMusic -> {
+                viewModelScope.launch {
+                    environment.updateMusic(event.updatedMusic)
+
+                    val updatedList = uiState.value.musicList.map {
+                        if (it.audioId == event.updatedMusic.audioId) event.updatedMusic else it
+                    }
+
+                    updateState {
+                        copy(
+                            musicList = updatedList,
+                            currentPlayedMusic = if (currentPlayedMusic.audioId == event.updatedMusic.audioId)
+                                event.updatedMusic
+                            else currentPlayedMusic
+                        )
+                    }
+                }
+            }
+
+            is PlayerEvent.DeleteMusic -> {
+                viewModelScope.launch {
+                    environment.deleteMusic(event.music)
+
+                    val updatedList = uiState.value.musicList.filterNot {
+                        it.audioId == event.music.audioId
+                    }
+
+                    updateState {
+                        copy(
+                            musicList = updatedList,
+
+                        )
+                    }
+                }
+            }
+
+
             is PlayerEvent.ToggleLoved -> {
                 viewModelScope.launch {
                     val updatedMusic = event.music.copy(loved = !event.music.loved)

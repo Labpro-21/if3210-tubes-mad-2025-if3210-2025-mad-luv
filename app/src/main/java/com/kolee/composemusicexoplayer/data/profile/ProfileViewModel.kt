@@ -25,7 +25,7 @@ class ProfileViewModel(private val userPreferences: UserPreferences) : ViewModel
             _profile.value = null
 
             try {
-                val token = userPreferences.getToken.first()
+                val token = userPreferences.getTokenOnce()
                 if (token.isNullOrEmpty()) {
                     Log.e("ProfileVM", "Token kosong. Tidak bisa mengambil profil.")
                     return@launch

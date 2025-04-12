@@ -104,8 +104,8 @@ class AuthViewModel(private val context: Context) : ViewModel() {
     }
 
     private suspend fun refreshToken() {
-        val token = userPreferences.getToken.first()
-        val refreshToken = userPreferences.getRefreshToken.first()
+        val token = userPreferences.getTokenOnce()
+        val refreshToken = userPreferences.getRefreshTokenOnce()
         if (!token.isNullOrBlank()) {
             val verifyResponse = apiService.verifyToken("Bearer $token")
             if (verifyResponse.isSuccessful) {

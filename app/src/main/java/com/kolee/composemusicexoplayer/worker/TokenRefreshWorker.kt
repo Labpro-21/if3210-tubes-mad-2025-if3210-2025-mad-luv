@@ -17,8 +17,8 @@ class TokenRefreshWorker(
     private val apiService = ApiClient.apiService
 
     override suspend fun doWork(): Result {
-        val token = userPreferences.getToken.first()
-        val refreshToken = userPreferences.getRefreshToken.first()
+        val token = userPreferences.getTokenOnce()
+        val refreshToken = userPreferences.getRefreshTokenOnce()
 
         if (token.isNullOrBlank() || refreshToken.isNullOrBlank()) {
             Log.e("TokenRefreshWorker", "Refresh token is null or blank")

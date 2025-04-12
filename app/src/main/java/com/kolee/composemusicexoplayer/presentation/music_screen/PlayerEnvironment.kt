@@ -49,13 +49,16 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     private val isBottomMusicPlayerShowed = _isBottomMusicPlayerShowed.asStateFlow()
 
     private val _playbackMode = MutableStateFlow(PlaybackMode.REPEAT_ALL)
-    private val playbackMode = _playbackMode.asStateFlow()
+    val playbackMode = _playbackMode.asStateFlow()
 
     private val _isPlayerExpanded = MutableStateFlow(false)
     val isPlayerExpanded = _isPlayerExpanded.asStateFlow()
 
     private val _isShuffleEnabled = MutableStateFlow(false)
     val isShuffleEnabled = _isShuffleEnabled.asStateFlow()
+
+    private var shuffledList: List<MusicEntity> = emptyList()
+    private var isOriginalList: Boolean = true
 
     private val playerHandler = Handler(Looper.getMainLooper())
 
@@ -66,13 +69,17 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
                 if (playbackState == Player.STATE_ENDED) {
                     when (playbackMode.value) {
                         PlaybackMode.REPEAT_ALL -> {
-                            val currentIndex = allMusics.value.indexOfFirst {
-                                it.audioId == currentPlayedMusic.value.audioId
-                            }
-                            val nextSong = when {
-                                currentIndex == allMusics.value.lastIndex -> allMusics.value[0]
-                                currentIndex != -1 -> allMusics.value[currentIndex + 1]
-                                else -> allMusics.value[0]
+                            val nextSong = if (_isShuffleEnabled.value) {
+                                getNextShuffledSong(currentPlayedMusic.value)
+                            } else {
+                                val currentIndex = allMusics.value.indexOfFirst {
+                                    it.audioId == currentPlayedMusic.value.audioId
+                                }
+                                when {
+                                    currentIndex == allMusics.value.lastIndex -> allMusics.value[0]
+                                    currentIndex != -1 -> allMusics.value[currentIndex + 1]
+                                    else -> allMusics.value[0]
+                                }
                             }
                             scope.launch { play(nextSong) }
                         }
@@ -152,6 +159,31 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         _isPlayerExpanded.value = expanded
     }
 
+    fun setPlaybackMode(mode: PlaybackMode) {
+        _playbackMode.value = mode
+        when (mode) {
+            PlaybackMode.REPEAT_ONE -> {
+                exoPlayer.repeatMode = Player.REPEAT_MODE_ONE
+            }
+            PlaybackMode.REPEAT_ALL -> {
+                exoPlayer.repeatMode = Player.REPEAT_MODE_ALL
+            }
+            PlaybackMode.REPEAT_OFF -> {
+                exoPlayer.repeatMode = Player.REPEAT_MODE_OFF
+            }
+        }
+    }
+
+    fun togglePlaybackMode() {
+        val newMode = when (playbackMode.value) {
+            PlaybackMode.REPEAT_ONE -> PlaybackMode.REPEAT_ALL
+            PlaybackMode.REPEAT_ALL -> PlaybackMode.REPEAT_OFF
+            PlaybackMode.REPEAT_OFF -> PlaybackMode.REPEAT_ONE
+        }
+        setPlaybackMode(newMode)
+    }
+
+
     suspend fun play(music: MusicEntity) {
         if (music.audioId != MusicEntity.default.audioId) {
             _hasStopped.emit(false)
@@ -194,13 +226,17 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     }
 
     suspend fun next() {
-        val currentIndex = allMusics.value.indexOfFirst {
-            it.audioId == currentPlayedMusic.value.audioId
-        }
-        val nextMusic = when {
-            currentIndex == allMusics.value.lastIndex -> allMusics.value[0]
-            currentIndex != -1 -> allMusics.value[currentIndex + 1]
-            else -> allMusics.value[0]
+        val nextMusic = if (_isShuffleEnabled.value) {
+            getNextShuffledSong(currentPlayedMusic.value)
+        } else {
+            val currentIndex = allMusics.value.indexOfFirst {
+                it.audioId == currentPlayedMusic.value.audioId
+            }
+            when {
+                currentIndex == allMusics.value.lastIndex -> allMusics.value[0]
+                currentIndex != -1 -> allMusics.value[currentIndex + 1]
+                else -> allMusics.value[0]
+            }
         }
         play(nextMusic)
     }
@@ -280,6 +316,30 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
 
     fun toggleShuffle() {
         _isShuffleEnabled.value = !_isShuffleEnabled.value
+        if (_isShuffleEnabled.value) {
+            shuffledList = allMusics.value.shuffled()
+            isOriginalList = false
+        } else {
+            isOriginalList = true
+        }
+    }
+
+    fun getNextShuffledSong(currentSong: MusicEntity): MusicEntity {
+        return if (_isShuffleEnabled.value && shuffledList.isNotEmpty()) {
+            val currentIndex = shuffledList.indexOfFirst { it.audioId == currentSong.audioId }
+            if (currentIndex == -1 || currentIndex == shuffledList.lastIndex) {
+                shuffledList[0]
+            } else {
+                shuffledList[currentIndex + 1]
+            }
+        } else {
+            val currentIndex = allMusics.value.indexOfFirst { it.audioId == currentSong.audioId }
+            if (currentIndex == allMusics.value.lastIndex) {
+                allMusics.value[0]
+            } else {
+                allMusics.value[currentIndex + 1]
+            }
+        }
     }
 
     private suspend fun insertAllMusics(newMusicList: List<MusicEntity>) {

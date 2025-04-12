@@ -35,6 +35,10 @@ fun PlayingProgress(
     LaunchedEffect(isPlaying) {
         while (isPlaying && maxDuration > 0 && !isUserInteracting) {
             kotlinx.coroutines.delay(100)
+            if(internalCurrentDuration>maxDuration){
+                sliderPosition = 0f
+                internalCurrentDuration = 0L
+            }
             internalCurrentDuration += 100
             sliderPosition = internalCurrentDuration.toFloat() / maxDuration
         }

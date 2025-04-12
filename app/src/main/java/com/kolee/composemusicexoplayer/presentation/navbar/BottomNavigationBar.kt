@@ -40,11 +40,7 @@ fun ResponsiveNavigationBar(
                                 tint = Color.White,
                                 modifier = Modifier.size(24.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = item.name,
-                                color = Color.White
-                            )
+
                         }
                     }
                 )

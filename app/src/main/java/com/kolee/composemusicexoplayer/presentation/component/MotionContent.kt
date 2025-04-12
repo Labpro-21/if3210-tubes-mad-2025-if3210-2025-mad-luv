@@ -1,6 +1,8 @@
 package com.kolee.composemusicexoplayer.presentation.component
 
+import android.content.res.Configuration
 import android.util.Log
+import androidx.annotation.Dimension
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -11,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +39,8 @@ fun MotionContent(
 ) {
     val context = LocalContext.current
     val musicUiState by playerVM.uiState.collectAsState()
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     val motionScene = remember {
         context.resources
@@ -55,14 +60,11 @@ fun MotionContent(
             .fillMaxSize()
             .background(gradientBrush)
     ) {
-
         IconButton(
-            onClick = {
-                Log.d("MotionContent", "Back button pressed")
-                onBack() },
+            onClick = { onBack() },
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(start = 16.dp, top = 20.dp)
+                .padding(16.dp)
                 .size(48.dp)
         ) {
             Image(
@@ -72,194 +74,278 @@ fun MotionContent(
             )
         }
 
-
-        MotionLayout(
-            motionScene = MotionScene(content = motionScene),
-            progress = fraction,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 30.dp)
-                .padding(top = 190.dp, bottom = 64.dp)
-        ) {
-
-            AnimatedVisibility(visible = fraction < 0.8f) {
-                Spacer(
-                    modifier = Modifier
-                        .layoutId("top_bar")
-                        .height(24.dp)
-                )
-            }
-
-            // Album Image
-            AlbumImage(
-                albumPath = musicUiState.currentPlayedMusic.albumPath,
-                modifier = Modifier
-                    .layoutId("album_image")
-                    .padding(bottom = 140.dp)
-                    .aspectRatio(1f)
-            )
-
-
-            // Title & Artist + Love Button
+        if (isLandscape) {
+            // LANDSCAPE LAYOUT - Image on left, controls on right
             Row(
-                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .layoutId("column_title_artist")
-                    .fillMaxWidth()
-                    .padding(bottom = 15.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = musicUiState.currentPlayedMusic.title,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Start,
-                        style = MaterialTheme.typography.h6.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 20.sp,
-                            color = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = musicUiState.currentPlayedMusic.artist,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Start,
-                        style = MaterialTheme.typography.body2.copy(
-                            color = Color.Gray,
-                            fontSize = 14.sp
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                IconButton(
-                    onClick = {
-                        playerVM.onEvent(PlayerEvent.ToggleLoved(musicUiState.currentPlayedMusic))
-                    },
-                    modifier = Modifier.padding(start = 8.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(
-                            id = if (musicUiState.currentPlayedMusic.loved)
-                                R.drawable.ic_favorite
-                            else
-                                R.drawable.ic_favorite_border
-                        ),
-                        contentDescription = "Love",
-                        tint = if (musicUiState.currentPlayedMusic.loved) Color.Red else Color.White
-                    )
-                }
-            }
-
-
-            // Top player buttons
-            AnimatedVisibility(visible = fraction > 0.8f) {
-                Row(
+                // Album Image on left
+                Box(
                     modifier = Modifier
-                        .layoutId("top_player_buttons")
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                        .weight(0.5f)
+                        .padding(end = 20.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    IconButton(onClick = {
-                        playerVM.onEvent(PlayerEvent.PlayPause(musicUiState.isPlaying))
-                    }) {
-                        Icon(
-                            painter = painterResource(
-                                id = if (!musicUiState.isPlaying)
-                                    R.drawable.ic_play_filled_rounded
-                                else
-                                    R.drawable.ic_pause_filled_rounded
-                            ),
-                            contentDescription = null,
-                            tint = Color.White
+                    AlbumImage(
+                        albumPath = musicUiState.currentPlayedMusic.albumPath,
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            .fillMaxWidth(0.8f)
+                    )
+                }
+
+                // Player controls on right
+                Column(
+                    modifier = Modifier
+                        .weight(0.5f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    // Title & Artist
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 24.dp)
+                    ) {
+                        Text(
+                            text = musicUiState.currentPlayedMusic.title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.h5.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = musicUiState.currentPlayedMusic.artist,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.h6.copy(
+                                color = Color.LightGray
+                            )
                         )
                     }
 
-                    IconButton(onClick = {
-                        playerVM.onEvent(PlayerEvent.Next)
-                    }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_next_filled_rounded),
-                            contentDescription = null,
-                            tint = Color.White
-                        )
+                    // Progress bar
+                    PlayingProgress(
+                        playerVM = playerVM,
+                        maxDuration = musicUiState.currentPlayedMusic.duration,
+                        currentDuration = musicUiState.currentDuration,
+                        isPlaying = musicUiState.isPlaying,
+                        onChangeFinished = { ratio ->
+                            val duration = ratio * musicUiState.currentPlayedMusic.duration
+                            playerVM.onEvent(PlayerEvent.SnapTo(duration.toLong()))
+                        },
+
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Player controls
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = { playerVM.onEvent(PlayerEvent.Previous) },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_previous_filled_rounded),
+                                contentDescription = "Previous",
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { playerVM.onEvent(PlayerEvent.PlayPause(musicUiState.isPlaying)) },
+                            modifier = Modifier.size(64.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    id = if (musicUiState.isPlaying)
+                                        R.drawable.ic_pause_filled_rounded
+                                    else
+                                        R.drawable.ic_play_filled_rounded
+                                ),
+                                contentDescription = "Play/Pause",
+                                tint = Color.White,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { playerVM.onEvent(PlayerEvent.Next) },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_next_filled_rounded),
+                                contentDescription = "Next",
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
                     }
+
                 }
             }
-
-            // Main player controls
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+        } else {
+            // PORTRAIT LAYOUT
+            MotionLayout(
+                motionScene = MotionScene(content = motionScene),
+                progress = fraction,
                 modifier = Modifier
-                    .layoutId("main_player_control")
-                    .fillMaxWidth()
+                    .fillMaxSize()
+                    .padding(horizontal = 30.dp)
+                    .padding(top = 190.dp, bottom = 64.dp)
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
+                AnimatedVisibility(visible = fraction < 0.8f) {
+                    Spacer(
+                        modifier = Modifier
+                            .layoutId("top_bar")
+                            .height(24.dp)
+                    )
+                }
 
-                PlayingProgress(
-                    playerVM = playerVM,
-                    maxDuration = musicUiState.currentPlayedMusic.duration,
-                    currentDuration = musicUiState.currentDuration,
-                    isPlaying = musicUiState.isPlaying,
-                    onChangeFinished = { ratio ->
-                        val duration = ratio * musicUiState.currentPlayedMusic.duration
-                        playerVM.onEvent(PlayerEvent.SnapTo(duration.toLong()))
-
-                    }
+                // Album Image
+                AlbumImage(
+                    albumPath = musicUiState.currentPlayedMusic.albumPath,
+                    modifier = Modifier
+                        .layoutId("album_image")
+                        .padding(bottom = 140.dp)
+                        .aspectRatio(1f)
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
-
+                // Title & Artist + Love Button
                 Row(
-                    horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .layoutId("column_title_artist")
+                        .fillMaxWidth()
+                        .padding(bottom = 15.dp)
                 ) {
-                    IconButton(onClick = {
-                        playerVM.onEvent(PlayerEvent.Previous)
-                    }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_previous_filled_rounded),
-                            contentDescription = "Previous",
-                            tint = Color.White,
-                            modifier = Modifier.size(40.dp)
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = musicUiState.currentPlayedMusic.title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Start,
+                            style = MaterialTheme.typography.h6.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 20.sp,
+                                color = Color.White
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = musicUiState.currentPlayedMusic.artist,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Start,
+                            style = MaterialTheme.typography.body2.copy(
+                                color = Color.Gray,
+                                fontSize = 14.sp
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
 
-                    IconButton(onClick = {
-                        playerVM.onEvent(PlayerEvent.PlayPause(musicUiState.isPlaying))
-                    }) {
+                    IconButton(
+                        onClick = {
+                            playerVM.onEvent(PlayerEvent.ToggleLoved(musicUiState.currentPlayedMusic))
+                        },
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
                         Icon(
                             painter = painterResource(
-                                id = if (musicUiState.isPlaying)
-                                    R.drawable.ic_pause_filled_rounded
+                                id = if (musicUiState.currentPlayedMusic.loved)
+                                    R.drawable.ic_favorite
                                 else
-                                    R.drawable.ic_play_filled_rounded
+                                    R.drawable.ic_favorite_border
                             ),
-                            contentDescription = "Play/Pause",
-                            tint = Color.White,
-                            modifier = Modifier.size(56.dp)
-                        )
-                    }
-
-                    IconButton(onClick = {
-                        playerVM.onEvent(PlayerEvent.Next)
-                    }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_next_filled_rounded),
-                            contentDescription = "Next",
-                            tint = Color.White,
-                            modifier = Modifier.size(40.dp)
+                            contentDescription = "Love",
+                            tint = if (musicUiState.currentPlayedMusic.loved) Color.Red else Color.White
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                // Main player controls
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .layoutId("main_player_control")
+                        .fillMaxWidth()
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    PlayingProgress(
+                        playerVM = playerVM,
+                        maxDuration = musicUiState.currentPlayedMusic.duration,
+                        currentDuration = musicUiState.currentDuration,
+                        isPlaying = musicUiState.isPlaying,
+                        onChangeFinished = { ratio ->
+                            val duration = ratio * musicUiState.currentPlayedMusic.duration
+                            playerVM.onEvent(PlayerEvent.SnapTo(duration.toLong()))
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        IconButton(
+                            onClick = { playerVM.onEvent(PlayerEvent.Previous) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_previous_filled_rounded),
+                                contentDescription = "Previous",
+                                tint = Color.White
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { playerVM.onEvent(PlayerEvent.PlayPause(musicUiState.isPlaying)) },
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    id = if (musicUiState.isPlaying)
+                                        R.drawable.ic_pause_filled_rounded
+                                    else
+                                        R.drawable.ic_play_filled_rounded
+                                ),
+                                contentDescription = "Play/Pause",
+                                tint = Color.White
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { playerVM.onEvent(PlayerEvent.Next) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_next_filled_rounded),
+                                contentDescription = "Next",
+                                tint = Color.White
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
     }

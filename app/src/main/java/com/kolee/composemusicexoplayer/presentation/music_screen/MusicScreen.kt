@@ -1,6 +1,7 @@
 
 package com.kolee.composemusicexoplayer.presentation.music_screen
 
+import android.content.res.Configuration
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,6 +11,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +39,8 @@ fun MusicScreen(
     networkSensing: NetworkSensing
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val musicUiState by playerVM.uiState.collectAsState()
     var open = musicUiState.isPlayerExpanded
     val isMusicPlaying = musicUiState.currentPlayedMusic != MusicEntity.default
@@ -43,39 +48,71 @@ fun MusicScreen(
     LaunchedEffect(key1 = musicUiState.currentPlayedMusic) {
         val isShowed = (musicUiState.currentPlayedMusic != MusicEntity.default)
         playerVM.onEvent(PlayerEvent.SetShowBottomPlayer(isShowed))
-
     }
 
     NetworkSensingScreen(
         networkSensing = networkSensing,
-//        showFallbackPage = !isConnected && profileState == null
     ) {
         Box(
             modifier = Modifier
                 .statusBarsPadding()
                 .fillMaxSize()
+                .background(MaterialTheme.colors.background)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                MusicSection(
-                    title = "New Songs",
-                    musicList = musicUiState.musicList.reversed(),
-                    isHorizontal = true,
-                    musicUiState = musicUiState,
-                    onSelectedMusic = { playerVM.onEvent(PlayerEvent.Play(it)) }
-                )
+            if (isLandscape) {
+                // LANDSCAPE LAYOUT
+                Row(modifier = Modifier.fillMaxSize()) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(8.dp)
+                    ) {
+                        MusicSection(
+                            title = "New Songs",
+                            musicList = musicUiState.musicList.reversed(),
+                            isHorizontal = false,
+                            musicUiState = musicUiState,
+                            onSelectedMusic = { playerVM.onEvent(PlayerEvent.Play(it)) },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(8.dp)
+                    ) {
+                        MusicSection(
+                            title = "Recently Played",
+                            musicList = playerVM.getRecentlyPlayed(),
+                            isHorizontal = false,
+                            musicUiState = musicUiState,
+                            onSelectedMusic = { playerVM.onEvent(PlayerEvent.Play(it)) },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+            } else {
+                // PORTRAIT LAYOUT
+                Column(modifier = Modifier.fillMaxSize()) {
+                    MusicSection(
+                        title = "New Songs",
+                        musicList = musicUiState.musicList.reversed(),
+                        isHorizontal = true,
+                        musicUiState = musicUiState,
+                        onSelectedMusic = { playerVM.onEvent(PlayerEvent.Play(it)) },
+                        modifier = Modifier.weight(0.3f)
+                    )
 
-                // Recently Played
-                MusicSection(
-                    title = "Recently Played",
-                    musicList = playerVM.getRecentlyPlayed(),
-                    isHorizontal = false,
-                    musicUiState = musicUiState,
-                    onSelectedMusic = { playerVM.onEvent(PlayerEvent.Play(it)) }
-                )
-
-
+                    MusicSection(
+                        title = "Recently Played",
+                        musicList = playerVM.getRecentlyPlayed(),
+                        isHorizontal = false,
+                        musicUiState = musicUiState,
+                        onSelectedMusic = { playerVM.onEvent(PlayerEvent.Play(it)) },
+                        modifier = Modifier.weight(0.6f)
+                    )
+                }
             }
 
             if (isMusicPlaying) {
@@ -92,7 +129,7 @@ fun MusicScreen(
                         onPlayPauseClicked = {
                             playerVM.onEvent(PlayerEvent.PlayPause(musicUiState.isPlaying))
                         },
-                        onExpand = {playerVM.setPlayerExpanded(true) }
+                        onExpand = { playerVM.setPlayerExpanded(true) }
                     )
                 }
             }
@@ -105,11 +142,9 @@ fun MusicScreen(
                 Log.d(TAG, "MusicScreen: ON_RESUME")
                 playerVM.onEvent(PlayerEvent.RefreshMusicList)
             }
-
             Lifecycle.Event.ON_PAUSE -> {
                 Log.d(TAG, "MusicScreen: ON_PAUSE")
             }
-
             else -> {}
         }
     }
@@ -121,9 +156,10 @@ fun MusicSection(
     musicList: List<MusicEntity>,
     isHorizontal: Boolean,
     musicUiState: MusicUiState,
-    onSelectedMusic: (MusicEntity) -> Unit
+    onSelectedMusic: (MusicEntity) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column {
+    Column(modifier = modifier) {
         Text(
             text = title,
             style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold),
@@ -133,27 +169,24 @@ fun MusicSection(
         if (isHorizontal) {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(25.dp)
+                horizontalArrangement = Arrangement.spacedBy(15.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 items(musicList) { music ->
                     MusicItem(
                         music = music,
                         selected = music.audioId == musicUiState.currentPlayedMusic.audioId,
                         isMusicPlaying = musicUiState.isPlaying,
-                        isHorizontal = isHorizontal,
-                        onClick = {
-
-                            onSelectedMusic(music) }
+                        isHorizontal = true,
+                        onClick = { onSelectedMusic(music) }
                     )
                 }
             }
         } else {
             LazyColumn(
-                contentPadding = PaddingValues(bottom = BottomMusicPlayerHeight.value),
-                verticalArrangement = Arrangement.spacedBy(0.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colors.background)
+                contentPadding = PaddingValues(bottom = if (musicUiState.currentPlayedMusic != MusicEntity.default) BottomMusicPlayerHeight.value else 0.dp),
+                verticalArrangement = Arrangement.spacedBy(-10.dp),
+                modifier = Modifier.fillMaxSize()
             ) {
                 items(musicList) { music ->
                     MusicItem(
@@ -163,6 +196,7 @@ fun MusicSection(
                         isHorizontal = false,
                         onClick = { onSelectedMusic(music) }
                     )
+                    Divider(color = Color.Gray.copy(alpha = 0.1f))
                 }
             }
         }

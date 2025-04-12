@@ -52,7 +52,6 @@ fun AddSongDrawer(
     var audioUri by remember { mutableStateOf<Uri?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // State untuk menandakan file sudah dipilih
     var isImageUploaded by remember { mutableStateOf(false) }
     var isAudioUploaded by remember { mutableStateOf(false) }
 
@@ -74,7 +73,7 @@ fun AddSongDrawer(
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
                 }
                 imageUri = imageFile.toUri()
-                isImageUploaded = true // Set image uploaded flag to true
+                isImageUploaded = true
             }
 
             retriever.release()

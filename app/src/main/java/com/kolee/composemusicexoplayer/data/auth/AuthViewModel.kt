@@ -26,7 +26,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
     val email = _email.asStateFlow()
 
     private var loginTimestamp: Long = 0
-    private val refreshDelayMillis = TimeUnit.MINUTES.toMillis(5)
+    private val refreshDelayMillis = TimeUnit.MINUTES.toMillis(4)
 
     init {
         viewModelScope.launch {
@@ -62,6 +62,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                         userPreferences.saveUserInfo(name, email)
                         setLoggedIn(true)
                         loginTimestamp = System.currentTimeMillis()
+                        Log.d("Login","${it.accessToken}${it.refreshToken} ")
                         onResult(true)
                     } ?: onResult(false)
                 } else {
@@ -119,12 +120,19 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     Result.success()
                 } catch (e: Exception) {
                     Log.e("AuthViewModel", "Error refreshing token: ${e.message}")
-                    logout()
                     Result.retry()
                 }
             } else {
-                logout()
-                Result.retry()
+                try {
+                    val newTokenResponse = apiService.refreshToken(mapOf("refreshToken" to refreshToken!!))
+                    userPreferences.saveToken(newTokenResponse.accessToken)
+                    userPreferences.saveRefreshToken(newTokenResponse.refreshToken)
+                    Log.d("TokenRefresh", "Refreshing token with: $refreshToken")
+                    Result.success()
+                } catch (e: Exception) {
+                    Log.e("AuthViewModel", "Error refreshing token: ${e.message}")
+                    Result.retry()
+                }
             }
         } else {
             Log.e("AuthViewModel", "No valid token available for refresh.")

@@ -90,7 +90,7 @@ fun MusicScreen(
                         playerVM = playerVM,
                         musicUiState = musicUiState,
                         onPlayPauseClicked = {
-                            playerVM.onEvent(PlayerEvent.PlayPause(isMusicPlaying))
+                            playerVM.onEvent(PlayerEvent.PlayPause(musicUiState.isPlaying))
                         },
                         onExpand = {playerVM.setPlayerExpanded(true) }
                     )

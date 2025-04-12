@@ -8,10 +8,11 @@ sealed interface PlayerEvent {
     data class PlayPause(val isPlaying: Boolean) : PlayerEvent
     data class SetShowBottomPlayer(val isShowed: Boolean) : PlayerEvent
     object RefreshMusicList : PlayerEvent
-    object Next: PlayerEvent
-    object Previous: PlayerEvent
+    object Next : PlayerEvent
+    object Previous : PlayerEvent
     data class ToggleLoved(val music: MusicEntity) : PlayerEvent
-    data class SnapTo(val duration: Long):PlayerEvent
-    data class addMusic(val music: MusicEntity):PlayerEvent
-    data class updateMusicList(val musicList: List<MusicEntity>): PlayerEvent
+    data class SnapTo(val duration: Long) : PlayerEvent
+    data class addMusic(val music: MusicEntity) : PlayerEvent
+    data class updateMusicList(val musicList: List<MusicEntity>) : PlayerEvent
+    data class UpdateProgress(val newDuration: Long) : PlayerEvent // New event to handle progress update
 }

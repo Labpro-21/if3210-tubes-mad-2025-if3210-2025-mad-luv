@@ -20,11 +20,11 @@
             android:id="@+id/imageCover"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_marginEnd="8dp"
             android:layout_weight="0.15"
-            android:adjustViewBounds="true"
             android:scaleType="centerCrop"
-            android:src="@drawable/ic_music_unknown" />
+            android:adjustViewBounds="true"
+            android:layout_marginEnd="8dp"
+            android:src="@drawable/ic_music_unknown"/>
 <!--            android:background="@drawable/rounded_image" -->
 
 

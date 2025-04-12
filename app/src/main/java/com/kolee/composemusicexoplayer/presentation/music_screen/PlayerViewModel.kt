@@ -7,7 +7,7 @@ import com.kolee.composemusicexoplayer.data.roomdb.MusicEntity
 import com.kolee.composemusicexoplayer.data.roomdb.MusicRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -21,7 +21,7 @@ class PlayerViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            environment.getAllMusic().collect {musics ->
+            environment.getAllMusic().collect { musics ->
                 updateState { copy(musicList = musics) }
             }
         }
@@ -43,6 +43,14 @@ class PlayerViewModel @Inject constructor(
                 updateState { copy(isBottomPlayerShow = isShowed) }
             }
         }
+
+        viewModelScope.launch {
+            environment.getCurrentDuration().collect { currentPos ->
+                updateState { copy(currentDuration = currentPos) }
+            }
+        }
+
+
     }
 
     fun onEvent(event: PlayerEvent) {
@@ -82,16 +90,19 @@ class PlayerViewModel @Inject constructor(
                 }
             }
 
+            is PlayerEvent.UpdateProgress -> {
+                viewModelScope.launch {
+                    environment.updateCurrentDuration(event.newDuration)
+                    updateState { copy(currentDuration = event.newDuration) }
+                }
+            }
+
             is PlayerEvent.RefreshMusicList -> {
                 viewModelScope.launch { environment.refreshMusicList() }
             }
 
             is PlayerEvent.SnapTo -> {
                 viewModelScope.launch { environment.snapTo(event.duration) }
-            }
-
-            is PlayerEvent.updateMusicList -> {
-                viewModelScope.launch { environment.updateMusicList(event.musicList) }
             }
 
             is PlayerEvent.updateMusicList -> {
@@ -121,7 +132,6 @@ class PlayerViewModel @Inject constructor(
                     }
                 }
             }
-
         }
     }
 
@@ -143,5 +153,4 @@ class PlayerViewModel @Inject constructor(
         return uiState.value.musicList
             .filter { (it.lastPlayedAt ?: 0) > 0 }
     }
-
 }

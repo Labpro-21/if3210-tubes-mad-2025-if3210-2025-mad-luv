@@ -1,27 +1,37 @@
 package com.kolee.composemusicexoplayer.presentation.component
 
+import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.media3.common.util.Log
+import androidx.media3.common.util.UnstableApi
+import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerEvent
 import com.kolee.composemusicexoplayer.ui.theme.TextDefaultColor
 import kotlin.math.min
 import kotlin.time.Duration.Companion.milliseconds
+import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 
+@OptIn(UnstableApi::class)
 @Composable
 fun PlayingProgress(
+    playerVM: PlayerViewModel,
     maxDuration: Long,
     currentDuration: Long,
     isPlaying: Boolean,
     onChangeFinished: (Float) -> Unit
 ) {
-    var sliderPosition by remember { mutableStateOf(0f) }
-    var internalCurrentDuration by remember { mutableStateOf(currentDuration) }
-    var isUserInteracting by remember { mutableStateOf(false) }
+    val musicUiState by playerVM.uiState.collectAsState()
 
-    // Start a timer if playing
+    var sliderPosition by rememberSaveable { mutableStateOf(0f) }
+    var internalCurrentDuration by rememberSaveable { mutableStateOf(musicUiState.currentDuration) }
+    var isUserInteracting by remember { mutableStateOf(false) }
+    var previousSongId by rememberSaveable { mutableStateOf(musicUiState.currentPlayedMusic.audioId) }
+
     LaunchedEffect(isPlaying) {
         while (isPlaying && maxDuration > 0 && !isUserInteracting) {
             kotlinx.coroutines.delay(100)
@@ -30,9 +40,19 @@ fun PlayingProgress(
         }
     }
 
-    // Sync external currentDuration if it changes (e.g., user seeks)
     LaunchedEffect(currentDuration) {
         internalCurrentDuration = currentDuration
+        if (!isUserInteracting) {
+            sliderPosition = internalCurrentDuration.toFloat() / maxDuration
+        }
+    }
+
+    LaunchedEffect(musicUiState.currentPlayedMusic.audioId) {
+        if (musicUiState.currentPlayedMusic.audioId != previousSongId) {
+            sliderPosition = 0f
+            internalCurrentDuration = 0L
+            previousSongId = musicUiState.currentPlayedMusic.audioId
+        }
     }
 
     val currentMinutes = internalCurrentDuration.milliseconds.inWholeMinutes
@@ -54,6 +74,7 @@ fun PlayingProgress(
             onValueChangeFinished = {
                 onChangeFinished(sliderPosition)
                 isUserInteracting = false
+                playerVM.onEvent(PlayerEvent.UpdateProgress(internalCurrentDuration))
             },
             modifier = Modifier
                 .fillMaxWidth()

@@ -109,7 +109,7 @@ fun BottomMusicPlayer(
                     progress = progress,
                     isPlaying = isPlaying
                 ) {
-                    onPlayPauseClicked(isPlaying)
+                    onPlayPauseClicked(!isPlaying)
                 }
 
             }

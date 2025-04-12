@@ -53,13 +53,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val listOfPermissions = mutableListOf<String>().apply {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                add(Manifest.permission.READ_MEDIA_AUDIO)
-            } else {
-                add(Manifest.permission.READ_EXTERNAL_STORAGE)
-            }
-        }
 
         setContent {
             ComposeMusicExoPlayerTheme {
@@ -67,7 +60,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    CheckAndRequestPermissions(permissions = listOfPermissions) {
+                    CheckAndRequestPermissions() {
                         val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
 
                         val sheetState = rememberModalBottomSheetState(

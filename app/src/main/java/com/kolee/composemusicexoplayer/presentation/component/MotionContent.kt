@@ -62,7 +62,7 @@ fun MotionContent(
                 onBack() },
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(start = 16.dp, top = 36.dp)
+                .padding(start = 16.dp, top = 20.dp)
                 .size(48.dp)
         ) {
             Image(
@@ -79,7 +79,7 @@ fun MotionContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 30.dp)
-                .padding(top = 260.dp, bottom = 64.dp)
+                .padding(top = 190.dp, bottom = 64.dp)
         ) {
 
             AnimatedVisibility(visible = fraction < 0.8f) {
@@ -95,7 +95,7 @@ fun MotionContent(
                 albumPath = musicUiState.currentPlayedMusic.albumPath,
                 modifier = Modifier
                     .layoutId("album_image")
-                    .padding(bottom = 180.dp)
+                    .padding(bottom = 140.dp)
                     .aspectRatio(1f)
             )
 
@@ -202,6 +202,7 @@ fun MotionContent(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 PlayingProgress(
+                    playerVM = playerVM,
                     maxDuration = musicUiState.currentPlayedMusic.duration,
                     currentDuration = musicUiState.currentDuration,
                     isPlaying = musicUiState.isPlaying,

@@ -54,6 +54,9 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     private val _isPlayerExpanded = MutableStateFlow(false)
     val isPlayerExpanded = _isPlayerExpanded.asStateFlow()
 
+    private val _isShuffleEnabled = MutableStateFlow(false)
+    val isShuffleEnabled = _isShuffleEnabled.asStateFlow()
+
     private val playerHandler = Handler(Looper.getMainLooper())
 
     private val exoPlayer = ExoPlayer.Builder(context).build().apply {
@@ -97,7 +100,7 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
                 audioId = 100L,
                 title = "intro (end of the world)",
                 artist = "Ariana Grande",
-                duration = 151000L,
+                duration = 161000L,
                 loved = true,
                 albumPath = Uri.parse(
                     ContentResolver.SCHEME_ANDROID_RESOURCE + "://" +
@@ -128,7 +131,11 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
                 .distinctUntilChanged()
                 .collect { musicList ->
                     _allMusics.emit(musicList)
+                    musicList.forEach {
+                        Log.d("AddSongDrawer", "Music in DB: $it") // Pastikan data lama masih ada
+                    }
                 }
+
 
         }
     }
@@ -154,6 +161,7 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
                 exoPlayer.setMediaItem(MediaItem.fromUri(music.audioPath.toUri()))
                 exoPlayer.prepare()
                 exoPlayer.play()
+                startUpdatingProgress()
             }
         }
     }
@@ -207,6 +215,7 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
 
     suspend fun pause() {
         playerHandler.post { exoPlayer.pause() }
+        startUpdatingProgress()
     }
 
     suspend fun resume() {
@@ -224,23 +233,49 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     suspend fun addMusicAndRefresh(music: MusicEntity) {
         addMusic(music)
 
+        val currentMusics = getAllMusic().first()
+
         val scannedMusics = MusicUtil.fetchMusicsFromDevice(context)
 
-        val combinedList = scannedMusics.toMutableList()
-
-        val musicAlreadyInScannedList = scannedMusics.any { it.audioId == music.audioId }
-
-        if (!musicAlreadyInScannedList) {
-            combinedList.add(music)
-        }
+        val combinedList = (currentMusics + scannedMusics + music)
+            .distinctBy { it.audioId }
 
         insertAllMusics(combinedList)
     }
 
 
+
+
+
     suspend fun refreshMusicList() {
         val scannedMusics = MusicUtil.fetchMusicsFromDevice(context)
 //        insertAllMusics(scannedMusics)
+    }
+
+    private val updateProgressRunnable = object : Runnable {
+        override fun run() {
+            if (exoPlayer.isPlaying) {
+                _currentDuration.value = exoPlayer.currentPosition
+                playerHandler.postDelayed(this, 1000)
+            }
+        }
+    }
+
+    fun updateCurrentDuration(newDuration: Long) {
+        _currentDuration.value = newDuration
+    }
+
+
+    private fun startUpdatingProgress() {
+        playerHandler.post(updateProgressRunnable)
+    }
+
+    private fun stopUpdatingProgress() {
+        playerHandler.removeCallbacks(updateProgressRunnable)
+    }
+
+    fun toggleShuffle() {
+        _isShuffleEnabled.value = !_isShuffleEnabled.value
     }
 
     private suspend fun insertAllMusics(newMusicList: List<MusicEntity>) {

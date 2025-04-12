@@ -17,4 +17,7 @@ sealed interface PlayerEvent {
     data class UpdateProgress(val newDuration: Long) : PlayerEvent
     data class EditMusic(val updatedMusic: MusicEntity) : PlayerEvent
     data class DeleteMusic(val music: MusicEntity) : PlayerEvent
+    data class SetPlaybackMode(val mode: PlaybackMode) : PlayerEvent
+    object TogglePlaybackMode : PlayerEvent
+    object ToggleShuffle : PlayerEvent
 }

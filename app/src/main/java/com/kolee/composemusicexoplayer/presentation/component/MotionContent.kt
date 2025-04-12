@@ -26,6 +26,7 @@ import androidx.constraintlayout.compose.MotionLayout
 import androidx.constraintlayout.compose.MotionScene
 import androidx.constraintlayout.compose.layoutId
 import com.kolee.composemusicexoplayer.R
+import com.kolee.composemusicexoplayer.presentation.music_screen.PlaybackMode
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerEvent
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 
@@ -139,8 +140,7 @@ fun MotionContent(
                         onChangeFinished = { ratio ->
                             val duration = ratio * musicUiState.currentPlayedMusic.duration
                             playerVM.onEvent(PlayerEvent.SnapTo(duration.toLong()))
-                        },
-
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
@@ -151,6 +151,19 @@ fun MotionContent(
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Shuffle Button
+                        IconButton(
+                            onClick = { playerVM.onEvent(PlayerEvent.ToggleShuffle) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_shuffle),
+                                contentDescription = "Shuffle",
+                                tint = if (musicUiState.isShuffleEnabled) Color(0xFF1ED760) else Color.Gray,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
                         IconButton(
                             onClick = { playerVM.onEvent(PlayerEvent.Previous) },
                             modifier = Modifier.size(48.dp)
@@ -191,8 +204,29 @@ fun MotionContent(
                                 modifier = Modifier.size(32.dp)
                             )
                         }
-                    }
 
+                        // Repeat Button
+                        IconButton(
+                            onClick = { playerVM.onEvent(PlayerEvent.TogglePlaybackMode) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    id = when (musicUiState.playbackMode) {
+                                        PlaybackMode.REPEAT_ONE -> R.drawable.ic_repeat_one
+                                        PlaybackMode.REPEAT_ALL -> R.drawable.ic_repeat
+                                        PlaybackMode.REPEAT_OFF -> R.drawable.ic_repeat_off
+                                    }
+                                ),
+                                contentDescription = "Repeat Mode",
+                                tint = when (musicUiState.playbackMode) {
+                                    PlaybackMode.REPEAT_OFF -> Color.Gray
+                                    else -> Color(0xFF1ED760)
+                                },
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
                 }
             }
         } else {
@@ -305,6 +339,18 @@ fun MotionContent(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        // Shuffle Button
+                        IconButton(
+                            onClick = { playerVM.onEvent(PlayerEvent.ToggleShuffle) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_shuffle),
+                                contentDescription = "Shuffle",
+                                tint = if (musicUiState.isShuffleEnabled) Color(0xFF1ED760) else Color.Gray
+                            )
+                        }
+
                         IconButton(
                             onClick = { playerVM.onEvent(PlayerEvent.Previous) },
                             modifier = Modifier.size(40.dp)
@@ -340,6 +386,27 @@ fun MotionContent(
                                 painter = painterResource(id = R.drawable.ic_next_filled_rounded),
                                 contentDescription = "Next",
                                 tint = Color.White
+                            )
+                        }
+
+                        // Repeat Button
+                        IconButton(
+                            onClick = { playerVM.onEvent(PlayerEvent.TogglePlaybackMode) },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(
+                                    id = when (musicUiState.playbackMode) {
+                                        PlaybackMode.REPEAT_ONE -> R.drawable.ic_repeat_one
+                                        PlaybackMode.REPEAT_ALL -> R.drawable.ic_repeat
+                                        PlaybackMode.REPEAT_OFF -> R.drawable.ic_repeat_off
+                                    }
+                                ),
+                                contentDescription = "Repeat Mode",
+                                tint = when (musicUiState.playbackMode) {
+                                    PlaybackMode.REPEAT_OFF -> Color.Gray
+                                    else -> Color(0xFF1ED760)
+                                }
                             )
                         }
                     }

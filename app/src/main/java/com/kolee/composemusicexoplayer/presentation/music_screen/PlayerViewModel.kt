@@ -50,6 +50,12 @@ class PlayerViewModel @Inject constructor(
             }
         }
 
+        viewModelScope.launch {
+            environment.playbackMode.collect { mode ->
+                updateState { copy(playbackMode = mode) }
+            }
+        }
+
 
     }
 
@@ -149,6 +155,24 @@ class PlayerViewModel @Inject constructor(
                 }
             }
 
+            is PlayerEvent.SetPlaybackMode -> {
+                viewModelScope.launch {
+                    environment.setPlaybackMode(event.mode)
+                }
+            }
+
+            is PlayerEvent.TogglePlaybackMode -> {
+                viewModelScope.launch {
+                    environment.togglePlaybackMode()
+                }
+            }
+
+            is PlayerEvent.ToggleShuffle -> {
+                viewModelScope.launch {
+                    environment.toggleShuffle()
+                    updateState { copy(isShuffleEnabled = environment.isShuffleEnabled.value) }
+                }
+            }
 
             is PlayerEvent.ToggleLoved -> {
                 viewModelScope.launch {

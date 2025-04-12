@@ -164,7 +164,8 @@ class MainActivity : ComponentActivity() {
                                     context = this@MainActivity,
                                     onLoginSuccess = {
                                         authViewModel.setLoggedIn(true)
-                                    }
+                                    },
+                                    networkSensing = networkSensing
                                 )
                             }
                         }

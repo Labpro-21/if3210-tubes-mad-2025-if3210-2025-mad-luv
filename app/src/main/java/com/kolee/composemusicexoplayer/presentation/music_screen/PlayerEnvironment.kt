@@ -167,6 +167,20 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         _allMusics.emit(updatedList)
     }
 
+    suspend fun deleteMusic(music: MusicEntity) {
+        if (currentPlayedMusic.value.audioId == music.audioId) {
+            playerHandler.post {
+                exoPlayer.stop()
+                _isPlaying.tryEmit(false)
+            }
+            _currentPlayedMusic.emit(MusicEntity.default)
+        }
+
+        musicRepository.deleteMusics(music)
+
+        val updatedList = allMusics.value.filter { it.audioId != music.audioId }
+        _allMusics.emit(updatedList)
+    }
 
     fun snapTo(duration: Long, fromUser: Boolean = true) {
         _currentDuration.tryEmit(duration)

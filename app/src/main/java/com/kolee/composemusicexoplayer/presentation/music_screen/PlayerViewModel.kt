@@ -94,12 +94,49 @@ class PlayerViewModel @Inject constructor(
                 viewModelScope.launch { environment.updateMusicList(event.musicList) }
             }
 
-            is PlayerEvent.updateMusicList -> {
-                viewModelScope.launch { environment.updateMusicList(event.musicList) }
-            }
-
             is PlayerEvent.addMusic -> {
                 viewModelScope.launch { environment.addMusicAndRefresh(event.music) }
+            }
+
+            is PlayerEvent.updateMusic -> {
+                viewModelScope.launch {
+                    environment.updateMusic(event.music)
+
+                    // Update the UI state with the updated music
+                    val updatedList = uiState.value.musicList.map {
+                        if (it.audioId == event.music.audioId) event.music else it
+                    }
+
+                    updateState {
+                        copy(
+                            musicList = updatedList,
+                            currentPlayedMusic = if (currentPlayedMusic.audioId == event.music.audioId)
+                                event.music
+                            else currentPlayedMusic
+                        )
+                    }
+                }
+            }
+
+            is PlayerEvent.deleteMusic -> {
+                viewModelScope.launch {
+                    environment.deleteMusic(event.music)
+
+                    // Update the UI state by removing the deleted music
+                    val updatedList = uiState.value.musicList.filter {
+                        it.audioId != event.music.audioId
+                    }
+
+                    updateState {
+                        copy(
+                            musicList = updatedList,
+                            // If the currently played music was deleted, reset it
+                            currentPlayedMusic = if (currentPlayedMusic.audioId == event.music.audioId)
+                                MusicEntity.default
+                            else currentPlayedMusic
+                        )
+                    }
+                }
             }
 
             is PlayerEvent.ToggleLoved -> {
@@ -121,7 +158,6 @@ class PlayerViewModel @Inject constructor(
                     }
                 }
             }
-
         }
     }
 
@@ -143,5 +179,4 @@ class PlayerViewModel @Inject constructor(
         return uiState.value.musicList
             .filter { (it.lastPlayedAt ?: 0) > 0 }
     }
-
 }

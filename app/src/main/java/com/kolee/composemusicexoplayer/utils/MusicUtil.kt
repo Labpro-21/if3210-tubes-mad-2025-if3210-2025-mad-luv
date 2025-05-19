@@ -48,7 +48,8 @@ object MusicUtil {
                     artist = if (artist.equals("<unknown>", true)) context.getString(R.string.unknown) else artist,
                     duration = duration,
                     albumPath = albumPath.toString(),
-                    audioPath = musicPath.toString()
+                    audioPath = musicPath.toString(),
+                    owner = "1"
                 )
 
                 val isValid = (!isTracksSmallerThan100KBSkipped || size / 1024 > 100) &&

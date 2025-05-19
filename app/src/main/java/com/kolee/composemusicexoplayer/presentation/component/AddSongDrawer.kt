@@ -31,11 +31,14 @@ import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.kolee.composemusicexoplayer.R
+import com.kolee.composemusicexoplayer.data.auth.UserPreferences
 import com.kolee.composemusicexoplayer.data.roomdb.MusicEntity
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerEvent
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 import java.io.File
 import java.io.FileOutputStream
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @Composable
 fun AddSongDrawer(
@@ -46,14 +49,25 @@ fun AddSongDrawer(
     onSongAdded: (Boolean, String) -> Unit
 ) {
     val context = LocalContext.current
+    val userPreferences = remember { UserPreferences(context) }
+    val coroutineScope = rememberCoroutineScope()
+
     var title by remember { mutableStateOf("") }
     var artist by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var audioUri by remember { mutableStateOf<Uri?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var currentUserId by remember { mutableStateOf("1") } // Default user ID
 
     var isImageUploaded by remember { mutableStateOf(false) }
     var isAudioUploaded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        coroutineScope.launch {
+            val userName = userPreferences.getUserName.first()
+            currentUserId = userName ?: "1"
+        }
+    }
 
     val launcherAudio = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
         it?.let { uri ->
@@ -188,9 +202,9 @@ fun AddSongDrawer(
                                 artist = artist.ifBlank { "Unknown Artist" },
                                 audioPath = path,
                                 albumPath = imageUri.toString(),
-                                duration = duration
+                                duration = duration,
+                                owner = currentUserId
                             )
-
 
                             playerViewModel.onEvent(PlayerEvent.addMusic(music))
                             onSongAdded(true, "Song added successfully")
@@ -258,9 +272,6 @@ fun UploadBox(
         }
     }
 }
-
-
-
 
 fun getRealPathFromURI(context: Context, uri: Uri): String? {
     val projection = arrayOf(MediaStore.Audio.Media.DATA)

@@ -14,6 +14,6 @@ class MusicRepository @Inject constructor(
     suspend fun deleteMusics(vararg music: MusicEntity) = musicDao.delete(*music)
     suspend fun updateMusic(music: MusicEntity) = musicDao.updateMusic(music)
     suspend fun getMusicById(audioId: Long): MusicEntity? = musicDao.getMusicById(audioId)
-
+    fun getMusicByOwner(owner: String): Flow<List<MusicEntity>> = musicDao.getMusicByOwner(owner)
 
 }

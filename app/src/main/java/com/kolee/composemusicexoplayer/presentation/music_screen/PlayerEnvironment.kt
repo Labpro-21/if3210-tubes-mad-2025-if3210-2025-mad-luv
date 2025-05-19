@@ -9,11 +9,11 @@ import androidx.annotation.OptIn
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.RawResourceDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import com.kolee.composemusicexoplayer.R
+import com.kolee.composemusicexoplayer.data.auth.UserPreferences
 import com.kolee.composemusicexoplayer.data.roomdb.MusicEntity
 import com.kolee.composemusicexoplayer.data.roomdb.MusicRepository
 import com.kolee.composemusicexoplayer.utils.MusicUtil
@@ -21,6 +21,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
+import android.util.Log
 
 class PlayerEnvironment @OptIn(UnstableApi::class)
 @Inject constructor(
@@ -29,6 +30,12 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
 ) {
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
+    private val userPreferences = UserPreferences(context)
+
+    private val _currentUserId = MutableStateFlow("1")
+    private val currentUserId = _currentUserId.asStateFlow()
+
+    private var hasLoadedMusicForCurrentUser = false
 
     private val _allMusics = MutableStateFlow(emptyList<MusicEntity>())
     private val allMusics = _allMusics.asStateFlow()
@@ -103,57 +110,106 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
 
     init {
         scope.launch {
-            val defaultMusic = MusicEntity(
-                audioId = 100L,
-                title = "intro (end of the world)",
-                artist = "Ariana Grande",
-                duration = 161000L,
-                loved = true,
-                albumPath = Uri.parse(
-                    ContentResolver.SCHEME_ANDROID_RESOURCE + "://" +
-                            context.packageName + "/" + R.drawable.album_cover
-                ).toString(),
-                audioPath = RawResourceDataSource.buildRawResourceUri(R.raw.intro).toString()
-            )
+            logAllMusicInDatabase()
 
-            val existing = musicRepository.getMusicById(100L)
-
-            if (existing == null) {
-                Log.d("MusicDebug", "Inserting default music")
-                musicRepository.insertMusic(defaultMusic)
-            } else {
-                Log.d("MusicDebug", "Updating default music")
-
-                val updated = existing.copy(
-                    title = defaultMusic.title,
-                    artist = defaultMusic.artist,
-                    duration = defaultMusic.duration,
-                    albumPath = defaultMusic.albumPath,
-                    audioPath = defaultMusic.audioPath
-                )
-                musicRepository.updateMusic(updated)
-            }
-
-            musicRepository.getAllMusic()
+            userPreferences.getUserEmail
                 .distinctUntilChanged()
-                .collect { musicList ->
-                    _allMusics.emit(musicList)
-                    musicList.forEach {
-                        Log.d("AddSongDrawer", "Music in DB: $it") // Pastikan data lama masih ada
+                .collect { email ->
+                    val userId = email ?: "1"
+                    if (_currentUserId.value != userId) {
+                        _currentUserId.value = userId
+                        Log.d("PlayerEnv", "User ID updated to: $userId")
                     }
                 }
-
-
         }
     }
 
+    private suspend fun logAllMusicInDatabase() {
+        musicRepository.getAllMusic().first().let { allMusicList ->
+            Log.d("MusicOwners", "===== ALL MUSIC IN DATABASE =====")
+            Log.d("MusicOwners", "Total music count: ${allMusicList.size}")
 
+            val musicByOwner = allMusicList.groupBy { it.owner }
+
+            musicByOwner.forEach { (owner, musicList) ->
+                Log.d("MusicOwners", "Owner: $owner - Music count: ${musicList.size}")
+                musicList.forEach { music ->
+                    Log.d("MusicOwners", "  - ID: ${music.audioId}, Title: ${music.title}, Artist: ${music.artist}, Owner: ${music.owner}")
+                }
+            }
+
+            Log.d("MusicOwners", "===== END OF ALL MUSIC =====")
+        }
+    }
+
+    @OptIn(UnstableApi::class)
+    private suspend fun loadUserMusic(userId: String) {
+        Log.d("MusicOwners", "Loading music for user: $userId")
+        hasLoadedMusicForCurrentUser = true
+
+        val defaultMusic = MusicEntity(
+            audioId = 100L,
+            title = "intro (end of the world)",
+            artist = "Ariana Grande",
+            duration = 161000L,
+            loved = true,
+            albumPath = Uri.parse(
+                ContentResolver.SCHEME_ANDROID_RESOURCE + "://" +
+                        context.packageName + "/" + R.drawable.album_cover
+            ).toString(),
+            audioPath = RawResourceDataSource.buildRawResourceUri(R.raw.intro).toString(),
+            owner = userId
+        )
+
+        val existing = musicRepository.getMusicById(100L)
+
+        if (existing == null) {
+            Log.d("MusicDebug", "Inserting default music for user: $userId")
+            musicRepository.insertMusic(defaultMusic)
+        } else {
+            Log.d("MusicDebug", "Updating default music for user: $userId")
+            Log.d("MusicOwners", "Default music current owner: ${existing.owner}, updating to: $userId")
+
+            val updated = existing.copy(
+                title = defaultMusic.title,
+                artist = defaultMusic.artist,
+                duration = defaultMusic.duration,
+                albumPath = defaultMusic.albumPath,
+                audioPath = defaultMusic.audioPath,
+                owner = userId
+            )
+            musicRepository.updateMusic(updated)
+        }
+
+        try {
+            musicRepository.getMusicByOwner(userId)
+                .distinctUntilChanged()
+                .collect { musicList ->
+                    _allMusics.emit(musicList)
+                    Log.d("MusicOwners", "===== MUSIC FOR USER: $userId =====")
+                    Log.d("MusicOwners", "User music count: ${musicList.size}")
+                    musicList.forEach {
+                        Log.d("MusicOwners", "Music: ID=${it.audioId}, Title=${it.title}, Artist=${it.artist}, Owner=${it.owner}")
+                    }
+                    Log.d("MusicOwners", "===== END OF USER MUSIC =====")
+                }
+        } catch (e: Exception) {
+            Log.e("MusicOwners", "Error loading music for user $userId: ${e.message}")
+        }
+    }
+
+    suspend fun reloadUserMusic() {
+        val userId = currentUserId.value
+        Log.d("MusicOwners", "Manually reloading music for user: $userId")
+        loadUserMusic(userId)
+    }
 
     fun getAllMusic(): Flow<List<MusicEntity>> = allMusics
     fun isBottomMusicPlayerShowed(): Flow<Boolean> = isBottomMusicPlayerShowed
     fun getCurrentPlayedMusic(): Flow<MusicEntity> = currentPlayedMusic
     fun isPlaying(): Flow<Boolean> = isPlaying
     fun getCurrentDuration(): Flow<Long> = currentDuration
+    fun getCurrentUserId(): Flow<String> = currentUserId
 
     fun setPlayerExpanded(expanded: Boolean) {
         _isPlayerExpanded.value = expanded
@@ -183,11 +239,11 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         setPlaybackMode(newMode)
     }
 
-
     suspend fun play(music: MusicEntity) {
         if (music.audioId != MusicEntity.default.audioId) {
             _hasStopped.emit(false)
             _currentPlayedMusic.emit(music)
+            Log.d("MusicOwners", "Playing music: ID=${music.audioId}, Title=${music.title}, Owner=${music.owner}")
 
             playerHandler.post {
                 exoPlayer.setMediaItem(MediaItem.fromUri(music.audioPath.toUri()))
@@ -199,14 +255,17 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     }
 
     suspend fun updateMusic(music: MusicEntity) {
-        musicRepository.updateMusic(music)
+        val updatedMusic = music.copy(owner = currentUserId.value)
+        Log.d("MusicOwners", "Updating music: ID=${music.audioId}, Title=${music.title}")
+        Log.d("MusicOwners", "  - Original owner: ${music.owner}, New owner: ${updatedMusic.owner}")
+
+        musicRepository.updateMusic(updatedMusic)
 
         val updatedList = allMusics.value.map {
-            if (it.audioId == music.audioId) music else it
+            if (it.audioId == updatedMusic.audioId) updatedMusic else it
         }
         _allMusics.emit(updatedList)
     }
-
 
     fun snapTo(duration: Long, fromUser: Boolean = true) {
         _currentDuration.tryEmit(duration)
@@ -218,10 +277,13 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     }
 
     suspend fun updateMusicList(musicList: List<MusicEntity>) {
-        _allMusics.emit(musicList)
+        val filteredList = musicList.filter { it.owner == currentUserId.value }
+        Log.d("MusicOwners", "Updating music list - Total: ${musicList.size}, Filtered for user ${currentUserId.value}: ${filteredList.size}")
+        _allMusics.emit(filteredList)
     }
 
     suspend fun deleteMusic(music: MusicEntity) {
+        Log.d("MusicOwners", "Deleting music: ID=${music.audioId}, Title=${music.title}, Owner=${music.owner}")
         musicRepository.deleteMusics(music)
     }
 
@@ -266,30 +328,43 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         }
     }
 
-    suspend fun addMusic(music: MusicEntity){
-        musicRepository.insertMusics(music)
+    suspend fun addMusic(music: MusicEntity) {
+        val musicWithOwner = music.copy(owner = currentUserId.value)
+        Log.d("MusicOwners", "Adding music: ID=${music.audioId}, Title=${music.title}")
+        Log.d("MusicOwners", "  - Original owner: ${music.owner}, Set owner: ${musicWithOwner.owner}")
+
+        musicRepository.insertMusics(musicWithOwner)
+
+        reloadUserMusic()
     }
 
     suspend fun addMusicAndRefresh(music: MusicEntity) {
-        addMusic(music)
+        val musicWithOwner = music.copy(owner = currentUserId.value)
+        Log.d("MusicOwners", "Adding music and refreshing: ID=${music.audioId}, Title=${music.title}, Owner set to: ${musicWithOwner.owner}")
+
+        addMusic(musicWithOwner)
 
         val currentMusics = getAllMusic().first()
-
         val scannedMusics = MusicUtil.fetchMusicsFromDevice(context)
+            .map { it.copy(owner = currentUserId.value) } // Set owner for scanned music
 
-        val combinedList = (currentMusics + scannedMusics + music)
+        Log.d("MusicOwners", "Scanned ${scannedMusics.size} music files from device, setting owner to: ${currentUserId.value}")
+
+        val combinedList = (currentMusics + scannedMusics + musicWithOwner)
             .distinctBy { it.audioId }
 
+        Log.d("MusicOwners", "Combined list size after deduplication: ${combinedList.size}")
         insertAllMusics(combinedList)
     }
 
-
-
-
-
     suspend fun refreshMusicList() {
         val scannedMusics = MusicUtil.fetchMusicsFromDevice(context)
-//        insertAllMusics(scannedMusics)
+            .map { it.copy(owner = currentUserId.value) }
+
+        Log.d("MusicOwners", "Refreshing music list - Scanned ${scannedMusics.size} music files, setting owner to: ${currentUserId.value}")
+        insertAllMusics(scannedMusics)
+
+        logAllMusicInDatabase()
     }
 
     private val updateProgressRunnable = object : Runnable {
@@ -304,7 +379,6 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     fun updateCurrentDuration(newDuration: Long) {
         _currentDuration.value = newDuration
     }
-
 
     private fun startUpdatingProgress() {
         playerHandler.post(updateProgressRunnable)
@@ -344,18 +418,38 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
 
     private suspend fun insertAllMusics(newMusicList: List<MusicEntity>) {
         val defaultMusicId = 100L
+        val userId = currentUserId.value
 
-        val musicToInsert = newMusicList.filterNot { new ->
-            allMusics.value.any { it.audioId == new.audioId }
-        }
-        val musicToDelete = allMusics.value.filterNot { stored ->
-            newMusicList.any { it.audioId == stored.audioId } || stored.audioId == defaultMusicId
-        }
+        val filteredNewMusicList = newMusicList.map { it.copy(owner = userId) }
 
-        musicRepository.insertMusics(*musicToInsert.toTypedArray())
-        musicRepository.deleteMusics(*musicToDelete.toTypedArray())
+        val currentUserMusic = allMusics.value.filter { it.owner == userId }
+
+
+        Log.d("MusicOwners", "NewMusic musics for user: $userId\n${filteredNewMusicList.joinToString("\n")}")
+        Log.d("MusicOwners", "Current musics for user: $userId\n${currentUserMusic.joinToString("\n")}")
+        Log.d("MusicOwners", "Inserting musics for user: $userId\n${currentUserMusic.joinToString("\n")}")
+
+        musicRepository.insertMusics(*currentUserMusic.toTypedArray())
+
+        reloadUserMusic()
     }
 
+    suspend fun logAllMusicOwners() {
+        Log.d("MusicOwners", "===== MANUALLY LOGGING ALL MUSIC OWNERS =====")
+        musicRepository.getAllMusic().first().let { allMusic ->
+            Log.d("MusicOwners", "Total music in database: ${allMusic.size}")
+
+            // Group by owner for better readability
+            val byOwner = allMusic.groupBy { it.owner }
+            byOwner.forEach { (owner, list) ->
+                Log.d("MusicOwners", "Owner: $owner - Count: ${list.size}")
+                list.forEach { music ->
+                    Log.d("MusicOwners", "  - ID: ${music.audioId}, Title: ${music.title}, Artist: ${music.artist}")
+                }
+            }
+        }
+        Log.d("MusicOwners", "===== END OF MANUAL LOG =====")
+    }
 
     fun release() {
         exoPlayer.release()

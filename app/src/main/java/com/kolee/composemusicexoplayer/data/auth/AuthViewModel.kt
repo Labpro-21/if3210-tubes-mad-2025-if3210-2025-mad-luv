@@ -13,10 +13,12 @@ import com.kolee.composemusicexoplayer.data.network.ApiClient.apiService
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 import androidx.work.ListenableWorker.Result
+import com.kolee.composemusicexoplayer.data.profile.ProfileRepository
 
 class AuthViewModel(private val context: Context) : ViewModel() {
     private val userPreferences = UserPreferences(context)
     private val repository = AuthRepository()
+    private val profileRepository = ProfileRepository()
     private val _userName = MutableStateFlow("")
     private val _email = MutableStateFlow("")
 
@@ -59,7 +61,22 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                         userPreferences.saveToken(it.accessToken)
                         userPreferences.saveRefreshToken(it.refreshToken)
                         val name = email.substringBefore("@")
-                        userPreferences.saveUserInfo(name, email)
+                        val bearerToken = "Bearer ${it.accessToken ?: ""}"
+                        try {
+                            val response = profileRepository.getProfile(bearerToken)
+                            if (response.isSuccessful) {
+                                val profile = response.body()
+                                Log.d("Profile", "Success: ${profile?.toString() ?: "null body"}")
+                                if (profile != null) {
+                                    userPreferences.saveUserInfo(name, email, profile.location)
+                                }
+                            } else {
+                                Log.e("Profile", "Error: ${response.code()} - ${response.errorBody()?.string()}")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("Profile", "Exception: ${e.message}")
+                        }
+
                         setLoggedIn(true)
                         loginTimestamp = System.currentTimeMillis()
                         Log.d("Login","${it.accessToken}${it.refreshToken} ")

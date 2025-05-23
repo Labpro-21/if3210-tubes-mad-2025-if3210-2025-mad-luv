@@ -1,6 +1,7 @@
 package com.kolee.composemusicexoplayer.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -15,6 +16,7 @@ import com.kolee.composemusicexoplayer.data.network.NetworkSensing
 import com.kolee.composemusicexoplayer.data.profile.ProfileViewModel
 import com.kolee.composemusicexoplayer.presentation.MusicPlayerSheet.MusicPlayerSheet
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
+import com.kolee.composemusicexoplayer.presentation.online_song.OnlineSongsViewModel
 
 @OptIn(ExperimentalMaterialNavigationApi::class)
 @Composable
@@ -23,11 +25,12 @@ fun Navigation(
     authViewModel: AuthViewModel,
     playerViewModel: PlayerViewModel,
     profileViewModel: ProfileViewModel,
+    onlineSongsVM: OnlineSongsViewModel,
     networkSensing: NetworkSensing
 ) {
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
-            MusicScreen(playerVM = playerViewModel,navController, networkSensing)
+            MusicScreen(playerVM = playerViewModel,onlineSongsVM, navController, profileViewModel, networkSensing)
         }
         composable("library") {
             LibraryScreen(playerVM = playerViewModel, navController, networkSensing)

@@ -36,6 +36,7 @@ import androidx.compose.material.ModalBottomSheetValue
 import androidx.navigation.compose.rememberNavController
 import com.kolee.composemusicexoplayer.data.auth.UserPreferences
 import com.kolee.composemusicexoplayer.data.network.NetworkSensing
+import com.kolee.composemusicexoplayer.presentation.online_song.OnlineSongsViewModel
 
 
 @AndroidEntryPoint
@@ -86,6 +87,7 @@ class MainActivity : ComponentActivity() {
 
 
                                 val playerViewModel: PlayerViewModel = hiltViewModel()
+                                val onlineSongsViewModel: OnlineSongsViewModel = hiltViewModel()
                                 val scaffoldContent: @Composable (PaddingValues) -> Unit = { innerPadding ->
                                     if (isPortrait) {
                                         Box(
@@ -98,6 +100,7 @@ class MainActivity : ComponentActivity() {
                                                 authViewModel = authViewModel,
                                                 playerViewModel = playerViewModel,
                                                 profileViewModel = profileViewModel,
+                                                onlineSongsVM= onlineSongsViewModel,
                                                 networkSensing = networkSensing
                                             )
                                         }
@@ -128,6 +131,7 @@ class MainActivity : ComponentActivity() {
                                                     authViewModel = authViewModel,
                                                     playerViewModel = playerViewModel,
                                                     profileViewModel = profileViewModel,
+                                                    onlineSongsVM= onlineSongsViewModel,
                                                     networkSensing = networkSensing
                                                 )
                                             }

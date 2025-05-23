@@ -35,6 +35,9 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     private val _currentUserId = MutableStateFlow("1")
     private val currentUserId = _currentUserId.asStateFlow()
 
+    private val _currentUserCountry = MutableStateFlow("GLOBAL")
+    private val currentUserCountry = _currentUserCountry.asStateFlow()
+
     private var hasLoadedMusicForCurrentUser = false
 
     private val _allMusics = MutableStateFlow(emptyList<MusicEntity>())
@@ -110,17 +113,32 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
 
     init {
         scope.launch {
+
             logAllMusicInDatabase()
 
-            userPreferences.getUserEmail
-                .distinctUntilChanged()
-                .collect { email ->
-                    val userId = email ?: "1"
-                    if (_currentUserId.value != userId) {
-                        _currentUserId.value = userId
-                        Log.d("PlayerEnv", "User ID updated to: $userId")
-                    }
+            // Combine both flows to ensure they're active
+            combine(
+                userPreferences.getUserEmail,
+                userPreferences.getUserCountry
+            ) { email, country ->
+                email to country
+            }.collect { (email, country) ->
+                val userId = email ?: "1"
+                val userCountry = country ?: "GLOBAL"
+
+                Log.d("PlayerEnv", "Email: $userId, Country: $userCountry")
+
+                if (_currentUserId.value != userId) {
+                    _currentUserId.value = userId
+                    Log.d("PlayerEnv", "User ID updated to: $userId")
                 }
+
+                if (_currentUserCountry.value != userCountry) {
+                    _currentUserCountry.value = userCountry
+                    Log.d("PlayerEnv", "User Country updated to: $userCountry")
+                    loadUserMusic(userId, userCountry)
+                }
+            }
         }
     }
 
@@ -143,7 +161,7 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     }
 
     @OptIn(UnstableApi::class)
-    private suspend fun loadUserMusic(userId: String) {
+    private suspend fun loadUserMusic(userId: String, userCountry: String) {
         Log.d("MusicOwners", "Loading music for user: $userId")
         hasLoadedMusicForCurrentUser = true
 
@@ -182,7 +200,13 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         }
 
         try {
-            musicRepository.getMusicByOwner(userId)
+            combine(
+                musicRepository.getMusicByOwner(userId),
+                musicRepository.getMusicByOwner("GLOBAL"),
+                musicRepository.getMusicByOwner(userCountry)
+            ) { userMusic, globalMusic, countryMusic ->
+                (userMusic + globalMusic + countryMusic).distinctBy { it.audioId }
+            }
                 .distinctUntilChanged()
                 .collect { musicList ->
                     _allMusics.emit(musicList)
@@ -200,8 +224,9 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
 
     suspend fun reloadUserMusic() {
         val userId = currentUserId.value
+        val userCountry = currentUserCountry.value
         Log.d("MusicOwners", "Manually reloading music for user: $userId")
-        loadUserMusic(userId)
+        loadUserMusic(userId,userCountry)
     }
 
     fun getAllMusic(): Flow<List<MusicEntity>> = allMusics
@@ -419,17 +444,22 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     private suspend fun insertAllMusics(newMusicList: List<MusicEntity>) {
         val defaultMusicId = 100L
         val userId = currentUserId.value
+        val userCountry = currentUserCountry.value
 
         val filteredNewMusicList = newMusicList.map { it.copy(owner = userId) }
 
         val currentUserMusic = allMusics.value.filter { it.owner == userId }
-
+        val globalsongs = musicRepository.getTopGlobalSongs()
+        val countrysongs = musicRepository.getTopSongsByCountry(userCountry)
 
         Log.d("MusicOwners", "NewMusic musics for user: $userId\n${filteredNewMusicList.joinToString("\n")}")
         Log.d("MusicOwners", "Current musics for user: $userId\n${currentUserMusic.joinToString("\n")}")
         Log.d("MusicOwners", "Inserting musics for user: $userId\n${currentUserMusic.joinToString("\n")}")
+        Log.d("MusicOwners", "country musics for user: $userCountry\n${countrysongs.joinToString("\n")}")
 
         musicRepository.insertMusics(*currentUserMusic.toTypedArray())
+        musicRepository.insertMusics(*globalsongs.toTypedArray())
+        musicRepository.insertMusics(*countrysongs.toTypedArray())
 
         reloadUserMusic()
     }

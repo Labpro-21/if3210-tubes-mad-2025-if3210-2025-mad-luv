@@ -19,6 +19,7 @@ class UserPreferences(private val context: Context) {
         private val REFRESH_TOKEN_KEY = stringPreferencesKey("refresh_token")
         private val USER_NAME = stringPreferencesKey("user_name")
         private val USER_EMAIL = stringPreferencesKey("user_email")
+        private val USER_COUNTRY = stringPreferencesKey("user_country")
     }
 
     val isLoggedIn: Flow<Boolean> = context.dataStore.data
@@ -32,6 +33,10 @@ class UserPreferences(private val context: Context) {
     val getUserEmail: Flow<String?> = context.dataStore.data
         .catch { emit(emptyPreferences()) }
         .map { it[USER_EMAIL] }
+
+    val getUserCountry: Flow<String?> = context.dataStore.data
+        .catch { emit(emptyPreferences()) }
+        .map { it[USER_COUNTRY] }
 
     suspend fun getTokenOnce(): String {
         val encoded = context.dataStore.data
@@ -73,11 +78,12 @@ class UserPreferences(private val context: Context) {
         }
     }
 
-    suspend fun saveUserInfo(name: String, email: String) {
+    suspend fun saveUserInfo(name: String, email: String, location: String) {
         if (email.contains("@")) {
             context.dataStore.edit { prefs ->
                 prefs[USER_NAME] = name
                 prefs[USER_EMAIL] = email
+                prefs[USER_COUNTRY] = location
             }
         }
     }

@@ -66,7 +66,6 @@ class PlayerViewModel @Inject constructor(
                     val updatedMusic = event.musicEntity.copy(lastPlayedAt = System.currentTimeMillis())
                     environment.play(updatedMusic)
                     environment.setShowButtonMusicPlayer(true)
-                    environment.updateMusic(updatedMusic)
 
                     val updatedList = uiState.value.musicList.map {
                         if (it.audioId == updatedMusic.audioId) updatedMusic else it
@@ -177,7 +176,6 @@ class PlayerViewModel @Inject constructor(
             is PlayerEvent.ToggleLoved -> {
                 viewModelScope.launch {
                     val updatedMusic = event.music.copy(loved = !event.music.loved)
-                    environment.updateMusic(updatedMusic)
 
                     val updatedList = uiState.value.musicList.map {
                         if (it.audioId == updatedMusic.audioId) updatedMusic else it

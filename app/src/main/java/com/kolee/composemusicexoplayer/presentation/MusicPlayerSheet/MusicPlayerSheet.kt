@@ -4,11 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import com.kolee.composemusicexoplayer.presentation.component.MotionContent
+import com.kolee.composemusicexoplayer.presentation.component.ShareButton
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 import com.kolee.composemusicexoplayer.utils.currentFraction
 import kotlinx.coroutines.launch
@@ -17,7 +20,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun MusicPlayerSheet(
     playerVM: PlayerViewModel,
-     navController: NavHostController,
+    navController: NavHostController,
     onCollapse: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -26,6 +29,7 @@ fun MusicPlayerSheet(
     )
 
     val fraction = scaffoldState.currentFraction()
+    val musicUiState by playerVM.uiState.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         MotionContent(
@@ -40,10 +44,15 @@ fun MusicPlayerSheet(
                     scaffoldState.bottomSheetState.collapse()
                     onCollapse()
                 }
-
             }
         )
 
-
+        ShareButton(
+            songId = musicUiState.currentPlayedMusic.audioId,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .zIndex(1f)
+        )
     }
 }

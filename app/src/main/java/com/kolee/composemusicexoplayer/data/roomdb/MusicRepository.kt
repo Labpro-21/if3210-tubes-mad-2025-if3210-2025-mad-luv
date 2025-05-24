@@ -4,6 +4,7 @@ import com.kolee.composemusicexoplayer.data.network.ApiClient
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import com.kolee.composemusicexoplayer.data.model.OnlineSong
+import android.util.Log
 
 class MusicRepository @Inject constructor(
     db: MusicDB
@@ -24,6 +25,28 @@ class MusicRepository @Inject constructor(
 
     suspend fun getTopSongsByCountry(code: String): List<MusicEntity> {
         return api.getTopSongsByCountry(code).map { it.toMusicEntity() }
+    }
+    suspend fun getSongById(songId: Long): MusicEntity {
+        // First check if the song exists in the local database
+        val localSong = musicDao.getMusicById(songId)
+        if (localSong != null) {
+            Log.d("DeepLink", "Found song in local database: ${localSong.title}")
+            return localSong
+        }
+
+        // If not found locally, fetch from API
+        try {
+            Log.d("DeepLink", "Fetching song from API: $songId")
+            val onlineSong = api.getSongById(songId)
+            val musicEntity = onlineSong.toMusicEntity()
+            // Cache the song in the local database
+            insertMusic(musicEntity)
+            return musicEntity
+        } catch (e: Exception) {
+            Log.e("DeepLink", "Error fetching song from API: ${e.message}")
+            // Return a default entity if the song can't be fetched
+            return MusicEntity.default
+        }
     }
 
     private fun OnlineSong.toMusicEntity(): MusicEntity {
@@ -46,5 +69,4 @@ class MusicRepository @Inject constructor(
         val seconds = parts.getOrNull(1)?.toLongOrNull() ?: 0L
         return (minutes * 60 + seconds) * 1000
     }
-
 }

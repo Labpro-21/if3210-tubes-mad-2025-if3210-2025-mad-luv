@@ -29,4 +29,7 @@ interface ApiService {
 
     @GET("api/top-songs/{countryCode}")
     suspend fun getTopSongsByCountry(@Path("countryCode") countryCode: String): List<OnlineSong>
+
+    @GET("api/songs/{id}")
+    suspend fun getSongById(@Path("id") id: Long): OnlineSong
 }

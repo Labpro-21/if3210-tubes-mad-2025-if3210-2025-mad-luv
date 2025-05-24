@@ -10,6 +10,7 @@ import com.google.accompanist.navigation.material.bottomSheet
 import com.kolee.composemusicexoplayer.presentation.music_screen.MusicScreen
 import com.kolee.composemusicexoplayer.presentation.library.LibraryScreen
 import com.kolee.composemusicexoplayer.presentation.profil_screen.ProfileScreen
+import com.kolee.composemusicexoplayer.presentation.qr.QRScanScreen
 import com.kolee.composemusicexoplayer.data.auth.AuthViewModel
 import com.kolee.composemusicexoplayer.data.auth.UserPreferences
 import com.kolee.composemusicexoplayer.data.network.NetworkSensing
@@ -30,10 +31,17 @@ fun Navigation(
 ) {
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
-            MusicScreen(playerVM = playerViewModel,onlineSongsVM, navController, profileViewModel, networkSensing)
+            MusicScreen(playerVM = playerViewModel, onlineSongsVM, navController, profileViewModel, networkSensing)
         }
         composable("library") {
             LibraryScreen(playerVM = playerViewModel, navController, networkSensing)
+        }
+        composable("scan_qr") {
+            QRScanScreen(
+                playerViewModel = playerViewModel,
+                navController = navController,
+                networkSensing = networkSensing
+            )
         }
         composable("profile") {
             ProfileScreen(viewModel = profileViewModel, playerViewModel, authViewModel, networkSensing)

@@ -31,7 +31,6 @@ class QRScannerActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            // Permission granted, show scanner
             setContent {
                 QRScannerScreen(
                     onQRCodeScanned = { uri -> handleScannedQRCode(uri) },
@@ -39,7 +38,6 @@ class QRScannerActivity : ComponentActivity() {
                 )
             }
         } else {
-            // Permission denied, show message and close
             Toast.makeText(
                 this,
                 "Camera permission is required to scan QR codes",
@@ -51,14 +49,11 @@ class QRScannerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Check camera permission
         when {
             ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED -> {
-                // Permission already granted, show scanner
                 setContent {
                     QRScannerScreen(
                         onQRCodeScanned = { uri -> handleScannedQRCode(uri) },
@@ -67,7 +62,6 @@ class QRScannerActivity : ComponentActivity() {
                 }
             }
             else -> {
-                // Request permission
                 requestPermissionLauncher.launch(Manifest.permission.CAMERA)
             }
         }
@@ -76,12 +70,19 @@ class QRScannerActivity : ComponentActivity() {
     private fun handleScannedQRCode(uri: Uri) {
         try {
             Log.d("QRScanner", "Scanned URI: $uri")
-            
-            // Extract song ID from URI
+            val content = uri.toString()
+            if (!DeepLinkHandler.isValidPurrytifyQR(content)) {
+                Toast.makeText(
+                    this,
+                    "Invalid QR code. Not a Purrytify song link.",
+                    Toast.LENGTH_LONG
+                ).show()
+                return
+            }
             val songId = DeepLinkHandler.extractSongIdFromUri(uri)
-            
+                ?: DeepLinkHandler.extractSongIdFromURL(content)
+
             if (songId != null) {
-                // Valid Purrytify URI, open in main activity
                 val intent = Intent(this, MainActivity::class.java).apply {
                     data = uri
                     flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -89,7 +90,6 @@ class QRScannerActivity : ComponentActivity() {
                 startActivity(intent)
                 finish()
             } else {
-                // Not a valid Purrytify URI
                 Toast.makeText(
                     this,
                     "Invalid QR code. Not a Purrytify song link.",
@@ -115,19 +115,18 @@ fun QRScannerScreen(
 ) {
     val context = LocalContext.current
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
-    
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
         if (cameraPermissionState.status.isGranted) {
-            // Show camera preview and QR scanner
             QRCodeScanner(
                 onQRCodeScanned = onQRCodeScanned,
+                onClose = onClose,
                 modifier = Modifier.fillMaxSize()
             )
         } else {
-            // Show permission request UI
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -137,11 +136,21 @@ fun QRScannerScreen(
             ) {
                 Text(
                     text = "Camera permission is required to scan QR codes",
+                    style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                Button(onClick = { cameraPermissionState.launchPermissionRequest() }) {
-                    Text("Grant Permission")
+                Text(
+                    text = "Please grant camera permission to scan Purrytify song QR codes",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+                Button(
+                    onClick = { cameraPermissionState.launchPermissionRequest() },
+                    modifier = Modifier.padding(bottom = 8.dp)
+                ) {
+                    Text("Grant Camera Permission")
                 }
                 TextButton(onClick = onClose) {
                     Text("Cancel")

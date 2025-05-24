@@ -83,10 +83,12 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                         onResult(true)
                     } ?: onResult(false)
                 } else {
+                    logout()
                     Log.e("Login", "Failed: ${response.code()} ${response.errorBody()?.string()}")
                     onResult(false)
                 }
             } catch (e: Exception) {
+                logout()
                 Log.e("Login", "Exception: ${e.message}")
                 onResult(false)
             }

@@ -8,4 +8,9 @@
     <string name="enable_permissions">Enable permissions</string>
     <string name="goto_settings">Go to Settings!</string>
     <string name="music_player">Music Player</string>
+    <style name="CustomAlertDialog" parent="Theme.AppCompat.DayNight.Dialog.Alert">
+        <item name="android:background">@drawable/bg_dialog</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
 </resources>

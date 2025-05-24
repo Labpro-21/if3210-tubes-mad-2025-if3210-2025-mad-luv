@@ -11,10 +11,6 @@ import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.FileProvider
-import com.google.zxing.BarcodeFormat
-import com.google.zxing.EncodeHintType
-import com.google.zxing.qrcode.QRCodeWriter
-import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import java.io.File
 import java.io.FileOutputStream
 
@@ -23,32 +19,12 @@ object DeepLinkHandler {
     private const val SCHEME = "purrytify"
     private const val HOST_SONG = "song"
 
-    // Base URL untuk server Purrytify
-    private const val BASE_URL = "https://your-purrytify-server.com" // Ganti dengan URL server Anda
+    private const val BASE_URL = "https://purrytify.vercel.app"
 
-    /**
-     * Creates a deep link URI for a song (untuk internal app use)
-     * @param songId The ID of the song to link to
-     * @return A URI string in the format purrytify://song/{songId}
-     */
-    fun createSongDeepLink(songId: Long): String {
-        return "$SCHEME://$HOST_SONG/$songId"
-    }
-
-    /**
-     * Creates a shareable URL that redirects to the app
-     * @param songId The ID of the song to link to
-     * @return A URL string that can be opened in browser and redirects to app
-     */
     fun createShareableURL(songId: Long): String {
         return "$BASE_URL/song/$songId"
     }
 
-    /**
-     * Extracts the song ID from a deep link URI
-     * @param uri The deep link URI
-     * @return The song ID or null if the URI is invalid
-     */
     fun extractSongIdFromUri(uri: Uri?): Long? {
         if (uri == null) return null
 
@@ -65,11 +41,7 @@ object DeepLinkHandler {
         }
     }
 
-    /**
-     * Extracts song ID from shareable URL
-     * @param url The shareable URL
-     * @return The song ID or null if the URL is invalid
-     */
+
     fun extractSongIdFromURL(url: String): Long? {
         return try {
             val uri = Uri.parse(url)
@@ -85,13 +57,7 @@ object DeepLinkHandler {
         }
     }
 
-    /**
-     * Shares a song via the Android share sheet using shareable URL
-     * @param context The context
-     * @param songId The ID of the song to share
-     * @param songTitle Optional song title for share text
-     * @param artistName Optional artist name for share text
-     */
+
     fun shareSong(context: Context, songId: Long, songTitle: String? = null, artistName: String? = null) {
         val shareableURL = createShareableURL(songId)
 
@@ -113,13 +79,7 @@ object DeepLinkHandler {
         context.startActivity(chooserIntent)
     }
 
-    /**
-     * Generates and shares a QR code for a song using shareable URL
-     * @param context The context
-     * @param songId The ID of the song to share
-     * @param songTitle Optional song title to display with QR
-     * @param artistName Optional artist name to display with QR
-     */
+
     fun shareQRCode(context: Context, songId: Long, songTitle: String? = null, artistName: String? = null) {
         try {
             // Create the shareable URL (not deep link)
@@ -183,20 +143,20 @@ object DeepLinkHandler {
      * @return A Bitmap containing the QR code
      */
     private fun generateQRCode(content: String, size: Int): Bitmap {
-        val hints = hashMapOf<EncodeHintType, Any>().apply {
-            put(EncodeHintType.MARGIN, 1)
-            put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H)
-        }
-
-        val qrCodeWriter = QRCodeWriter()
-        val bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, size, size, hints)
+//        val hints = hashMapOf<EncodeHintType, Any>().apply {
+//            put(EncodeHintType.MARGIN, 1)
+//            put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H)
+//        }
+//
+//        val qrCodeWriter = QRCodeWriter()
+//        val bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, size, size, hints)
 
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        for (x in 0 until size) {
-            for (y in 0 until size) {
-                bitmap.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
-            }
-        }
+//        for (x in 0 until size) {
+//            for (y in 0 until size) {
+//                bitmap.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
+//            }
+//        }
 
         return bitmap
     }

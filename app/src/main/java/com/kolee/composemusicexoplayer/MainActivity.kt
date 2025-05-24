@@ -28,11 +28,13 @@ import com.kolee.composemusicexoplayer.presentation.navigation.ResponsiveNavigat
 import com.kolee.composemusicexoplayer.presentation.permission.CheckAndRequestPermissions
 import com.kolee.composemusicexoplayer.ui.theme.ComposeMusicExoPlayerTheme
 import LoginScreen
+import android.content.Intent
 import androidx.hilt.navigation.compose.hiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import com.google.accompanist.navigation.material.BottomSheetNavigator
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material.ModalBottomSheetValue
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.rememberNavController
 import com.kolee.composemusicexoplayer.data.auth.UserPreferences
 import com.kolee.composemusicexoplayer.data.network.NetworkSensing
@@ -54,7 +56,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-
+        handleDeepLink(intent)
         setContent {
             ComposeMusicExoPlayerTheme {
                 Surface(
@@ -174,6 +176,23 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        intent?.let { handleDeepLink(it) }
+    }
+
+    private fun handleDeepLink(intent: Intent) {
+        if (intent.action == Intent.ACTION_VIEW) {
+            intent.data?.let { uri ->
+                if (uri.scheme == "purrytify" && uri.host == "song") {
+                    val songId = uri.lastPathSegment ?: return
+
+                    val playerViewModel = ViewModelProvider(this)[PlayerViewModel::class.java]
+                    playerViewModel.fetchAndPlaySharedSong(songId)
                 }
             }
         }

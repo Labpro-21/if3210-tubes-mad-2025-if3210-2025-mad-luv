@@ -2,6 +2,7 @@ package com.kolee.composemusicexoplayer.presentation.music_screen
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.State
 import androidx.lifecycle.viewModelScope
@@ -294,7 +295,6 @@ class PlayerViewModel @Inject constructor(
                 }
         }
 
-        // Fallback if no country data
         return topCountries.ifEmpty {
             mapOf(
                 "Global" to allCountrySongs
@@ -322,5 +322,31 @@ class PlayerViewModel @Inject constructor(
     fun getListenedSongs(): List<MusicEntity> {
         return uiState.value.musicList
             .filter { (it.lastPlayedAt ?: 0) > 0 }
+    }
+
+    fun fetchAndPlaySharedSong(songId: String) {
+        viewModelScope.launch {
+            try {
+                musicRepository.getAllMusic()
+                val localSong = musicRepository.getSongById(songId.toLong())
+                Log.d("PlayerVM", "Local Music $localSong")
+                Log.d("PlayerVM", " Music ID $songId    ")
+
+                if (localSong != null) {
+                    onEvent(PlayerEvent.Play(localSong))
+                } else {
+
+                    val song = musicRepository.getSongById(songId.toLong())
+
+                    if (!uiState.value.musicList.any { it.audioId == song.audioId }) {
+                        environment.addMusicAndRefresh(song)
+                    }
+
+                    onEvent(PlayerEvent.Play(song))
+                }
+            } catch (e: Exception) {
+
+            }
+        }
     }
 }

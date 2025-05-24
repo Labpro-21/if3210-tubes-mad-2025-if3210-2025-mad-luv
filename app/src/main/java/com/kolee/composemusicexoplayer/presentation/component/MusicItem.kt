@@ -173,8 +173,7 @@ fun MusicItem(
                         )
                     )
                 }
-                
-                // Share button for vertical layout (only for server songs)
+
                 if (isServerSong) {
                     IconButton(
                         onClick = { showShareOptions(context, music) }

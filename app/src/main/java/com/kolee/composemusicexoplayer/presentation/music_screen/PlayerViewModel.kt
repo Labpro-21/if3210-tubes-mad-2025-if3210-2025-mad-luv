@@ -2,6 +2,8 @@ package com.kolee.composemusicexoplayer.presentation.music_screen
 
 import android.annotation.SuppressLint
 import android.content.Context
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.State
 import androidx.lifecycle.viewModelScope
 import com.kolee.composemusicexoplayer.data.roomdb.MusicEntity
 import com.kolee.composemusicexoplayer.data.roomdb.MusicRepository
@@ -19,10 +21,21 @@ class PlayerViewModel @Inject constructor(
     val musicRepository: MusicRepository
 ) : StatefulViewModel<MusicUiState>(MusicUiState()) {
 
+    data class RecommendationState(
+        val dailyPlaylist: List<MusicEntity> = emptyList(),
+        val topMixes: Map<String, List<MusicEntity>> = emptyMap(),
+        val isLoading: Boolean = false
+    )
+
+    private val _recommendationState = mutableStateOf(RecommendationState())
+    val recommendationState: State<RecommendationState> = _recommendationState
+
+
     init {
         viewModelScope.launch {
             environment.getAllMusic().collect { musics ->
                 updateState { copy(musicList = musics) }
+                generateRecommendations()
             }
         }
 
@@ -176,7 +189,7 @@ class PlayerViewModel @Inject constructor(
             is PlayerEvent.ToggleLoved -> {
                 viewModelScope.launch {
                     val updatedMusic = event.music.copy(loved = !event.music.loved)
-
+                    environment.updateMusic(updatedMusic)
                     val updatedList = uiState.value.musicList.map {
                         if (it.audioId == updatedMusic.audioId) updatedMusic else it
                     }
@@ -189,8 +202,106 @@ class PlayerViewModel @Inject constructor(
                             else currentPlayedMusic
                         )
                     }
+
+                    generateRecommendations()
                 }
             }
+        }
+    }
+
+    fun generateRecommendations() {
+        viewModelScope.launch {
+            _recommendationState.value = _recommendationState.value.copy(isLoading = true)
+
+            val likedSongs = getLoved()
+            val recentlyPlayed = getRecentlyPlayed()
+            val allSongs = uiState.value.musicList
+
+            val dailyPlaylist = generateDailyPlaylist(likedSongs, recentlyPlayed, allSongs)
+            val topMixes = generateTopMixes(likedSongs)
+
+            _recommendationState.value = RecommendationState(
+                dailyPlaylist = dailyPlaylist,
+                topMixes = topMixes,
+                isLoading = false
+            )
+        }
+    }
+
+    private fun generateDailyPlaylist(
+        likedSongs: List<MusicEntity>,
+        recentlyPlayed: List<MusicEntity>,
+        allSongs: List<MusicEntity>
+    ): List<MusicEntity> {
+        val combined = (likedSongs + recentlyPlayed).distinctBy { it.audioId }
+        val weightedSongs = likedSongs.flatMap { song ->
+            List(3) { song }
+        } + recentlyPlayed
+
+        // Urutkan berdasarkan: liked -> recently played -> popular
+        return (weightedSongs + allSongs)
+            .distinctBy { it.audioId }
+            .sortedWith(compareByDescending<MusicEntity> {
+                if (it.loved) 2 else if (recentlyPlayed.any { r -> r.audioId == it.audioId }) 1 else 0
+            })
+            .take(10)
+            .ifEmpty {
+                allSongs.shuffled().take(10) // Fallback
+            }
+    }
+
+    private suspend fun generateTopMixes(
+        likedSongs: List<MusicEntity>
+    ): Map<String, List<MusicEntity>> {
+
+        val supportedCountries = listOf("ID", "MY", "US", "GB", "CH", "DE", "BR")
+
+        val allCountrySongs = supportedCountries.flatMap { countryCode ->
+            musicRepository.getTopSongsByCountry(countryCode)
+        }.distinctBy { it.audioId }
+
+        val combinedSongs = (likedSongs + allCountrySongs)
+            .distinctBy { it.audioId }
+
+        val byCountry = combinedSongs
+            .groupBy { it.country ?: "Global" }
+            .filterKeys { it in supportedCountries || it == "Global" }
+
+
+        val topCountries = if (likedSongs.isNotEmpty()) {
+
+            likedSongs.asSequence()
+                .filter { it.country in supportedCountries }
+                .groupBy { it.country ?: "Global" }
+                .entries
+                .sortedByDescending { it.value.size }
+                .take(3)
+                .associate { (country, _) ->
+                    val songs = byCountry[country]
+                        ?.sortedByDescending { it.lastPlayedAt ?: 0 }
+                        ?.take(5)
+                        ?: emptyList()
+                    country to songs
+                }
+        } else {
+
+            byCountry.entries
+                .sortedByDescending { it.value.size }
+                .take(3)
+                .associate { (country, songs) ->
+                    country to songs
+                        .take(5)
+                }
+        }
+
+        // Fallback if no country data
+        return topCountries.ifEmpty {
+            mapOf(
+                "Global" to allCountrySongs
+                    .filter { it.country == null || it.country == "Global" }
+                    .take(5)
+                    .ifEmpty { combinedSongs.shuffled().take(5) }
+            )
         }
     }
 

@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -67,7 +69,6 @@ fun MusicScreen(
     val isMusicPlaying = musicUiState.currentPlayedMusic != MusicEntity.default
     val userPreferences = UserPreferences(context)
 
-    // State for category selection
     var selectedCategory by remember { mutableStateOf("Global") }
     var showFullList by remember { mutableStateOf(false) }
     var currentFullList by remember { mutableStateOf(emptyList<MusicEntity>()) }
@@ -186,6 +187,7 @@ private fun PortraitLayout(
 
     var isDownloadingGlobal by remember { mutableStateOf(false) }
     var isDownloadingCountry by remember { mutableStateOf(false) }
+    val recommendationState = playerVM.recommendationState.value
 
     val downloadManager = remember {
         DownloadManager(
@@ -201,6 +203,7 @@ private fun PortraitLayout(
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(-10.dp),
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(bottom = if (isMusicPlaying && !open) BottomMusicPlayerHeight.value else 0.dp)
@@ -241,6 +244,45 @@ private fun PortraitLayout(
                                    )
                             }
 
+                            Column(modifier = Modifier.padding(horizontal = 16.dp,vertical = 8.dp)) {
+                                Text(
+                                    text = "Recommendations",
+                                    style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold)
+                                )
+                                Text(
+                                    text = "Curated just for you",
+                                    style = MaterialTheme.typography.caption,
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
+
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                item {
+                                    GradientCategoryCard(
+                                        title = "Daily Mix",
+                                        gradientColors = listOf(Color(0xFFFF416C), Color(0xFFFF4B2B)),
+                                        isSelected = selectedCategory == "Daily Mix",
+                                        onClick = { onCategorySelected("Daily Mix", recommendationState.dailyPlaylist) },
+                                    )
+                                }
+
+                                items(recommendationState.topMixes.keys.take(10).toList()) { genre ->
+                                    GradientCategoryCard(
+                                        title = "Top $genre Mix",
+                                        gradientColors = listOf(
+                                            Color(0xFF4776E6),
+                                            Color(0xFF8E54E9)
+                                        ),
+                                        isSelected = selectedCategory == "Top $genre Mix",
+                                        onClick = { onCategorySelected("Top $genre Mix", recommendationState.topMixes[genre] ?: emptyList()) }
+                                    )
+                                }
+                            }
+
                             HorizontalMusicList(
                                 title = "New Songs",
                                 musicList = userSongs.reversed(),
@@ -248,12 +290,6 @@ private fun PortraitLayout(
                                 onSelectedMusic = { playerVM.onEvent(PlayerEvent.Play(it)) }
                             )
 
-                            HorizontalMusicList(
-                                title = "Top Picks",
-                                musicList = (globalSongs.take(3) + countrySongs.take(3)),
-                                musicUiState = musicUiState,
-                                onSelectedMusic = { playerVM.onEvent(PlayerEvent.Play(it)) }
-                            )
                         }
                     }
 
@@ -293,6 +329,7 @@ private fun PortraitLayout(
                                     style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold),
                                     modifier = Modifier.padding(start = 8.dp)
                                 )
+                                if (selectedCategory == "Global" || selectedCategory == "Country") {
                                 IconButton(
                                     onClick = {
                                         when (selectedCategory) {
@@ -378,17 +415,47 @@ private fun PortraitLayout(
                                     )
                                 }
                             }
+                            }
                         }
                     }
 
-                    items(currentFullList) { music ->
-                        MusicItem(
-                            music = music,
-                            selected = music.audioId == musicUiState.currentPlayedMusic.audioId,
-                            isMusicPlaying = musicUiState.isPlaying,
-                            isHorizontal = false,
-                            onClick = { playerVM.onEvent(PlayerEvent.Play(music)) },
-                        )
+                    itemsIndexed(currentFullList) { index, music ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 1.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    ,
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "${index + 1}",
+                                    style = MaterialTheme.typography.subtitle2.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = when (index) {
+                                            0, 1, 2 -> Color.White
+                                            else -> MaterialTheme.colors.onSurface
+                                        }
+                                    )
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(1.dp))
+
+                            Box(modifier = Modifier.weight(1f)) {
+                                MusicItem(
+                                    music = music,
+                                    selected = music.audioId == musicUiState.currentPlayedMusic.audioId,
+                                    isMusicPlaying = musicUiState.isPlaying,
+                                    isHorizontal = false,
+                                    onClick = { playerVM.onEvent(PlayerEvent.Play(music)) },
+                                )
+                            }
+                        }
                         Divider(color = Color.Gray.copy(alpha = 0.1f))
                     }
                 }

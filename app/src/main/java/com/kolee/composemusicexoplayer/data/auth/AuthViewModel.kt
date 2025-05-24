@@ -139,7 +139,6 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     Result.success()
                 } catch (e: Exception) {
                     Log.e("AuthViewModel", "Error refreshing token: ${e.message}")
-                    logout()
                     Result.retry()
                 }
             } else {
@@ -151,7 +150,6 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     Result.success()
                 } catch (e: Exception) {
                     Log.e("AuthViewModel", "Error refreshing token: ${e.message}")
-                    logout()
                     Result.retry()
                 }
             }

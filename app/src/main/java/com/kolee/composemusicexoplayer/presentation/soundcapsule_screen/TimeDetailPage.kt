@@ -183,7 +183,7 @@ fun DailyChart(
                     detectTapGestures { offset ->
                         if (dailyStats.isEmpty()) return@detectTapGestures
 
-                        val padding = 40.dp.toPx() 
+                        val padding = 40.dp.toPx()
                         val chartWidth = size.width - padding * 2
                         val stepX = if (dailyStats.size > 1) chartWidth / (dailyStats.size - 1) else 0f
 

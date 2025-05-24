@@ -17,6 +17,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -125,7 +126,6 @@ class PlayerViewModel @Inject constructor(
                 updateState { copy(playbackMode = mode) }
             }
         }
-    }
 
         // Load current month analytics
         viewModelScope.launch {
@@ -141,6 +141,16 @@ class PlayerViewModel @Inject constructor(
                 // Update analytics if playing and at least 1 minute has passed
                 if (uiState.value.isPlaying &&
                     currentTime - lastAnalyticsUpdate > 60000) {
+
+                    // Record partial session for real-time updates
+                    recordPartialSession()
+                    loadCurrentMonthAnalytics()
+                    lastAnalyticsUpdate = currentTime
+                }
+            }
+        }
+    }
+
     private fun initializeAudioDevices() {
         viewModelScope.launch {
             try {
@@ -150,11 +160,17 @@ class PlayerViewModel @Inject constructor(
                     _availableDevices.value = devices
                 }
 
-                    // Record partial session for real-time updates
-                    recordPartialSession()
-                    loadCurrentMonthAnalytics()
-                    lastAnalyticsUpdate = currentTime
+                // Set current device to the first available device or default
+                val currentDevice = audioDeviceManager.currentDevice.value
+                if (devices != null) {
+                    _currentDevice.value = currentDevice ?: devices.firstOrNull()
                 }
+
+                if (devices != null) {
+                    Log.d("PlayerViewModel", "Audio devices initialized: ${devices.size} devices found")
+                }
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "Failed to initialize audio devices", e)
             }
         }
     }
@@ -225,20 +241,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-                // Set current device to the first available device or default
-                val currentDevice = audioDeviceManager.currentDevice.value
-                if (devices != null) {
-                    _currentDevice.value = currentDevice ?: devices.firstOrNull()
-                }
-
-                if (devices != null) {
-                    Log.d("PlayerViewModel", "Audio devices initialized: ${devices.size} devices found")
-                }
-            } catch (e: Exception) {
-                Log.e("PlayerViewModel", "Failed to initialize audio devices", e)
-            }
-        }
-    }
 
     fun onEvent(event: PlayerEvent) {
         when (event) {
@@ -350,10 +352,6 @@ class PlayerViewModel @Inject constructor(
                     }
 
                     updateState {
-                        copy(
-                            musicList = updatedList,
-
-                            )
                         copy(musicList = updatedList)
                     }
 
@@ -510,12 +508,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    // Analytics-specific methods
-    fun refreshAnalytics() {
-        viewModelScope.launch {
-            loadCurrentMonthAnalytics()
-        }
-    }
 
 
     fun getRecentlyPlayed(): List<MusicEntity> {
@@ -536,7 +528,6 @@ class PlayerViewModel @Inject constructor(
         return uiState.value.musicList
             .filter { (it.lastPlayedAt ?: 0) > 0 }
     }
-}
 
     fun selectAudioDevice(device: AudioDeviceManager.AudioDevice) {
         viewModelScope.launch {

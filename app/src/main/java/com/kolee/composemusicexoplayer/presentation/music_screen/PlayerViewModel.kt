@@ -1,5 +1,6 @@
 package com.kolee.composemusicexoplayer.presentation.music_screen
 
+import AudioDeviceManager
 import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
@@ -11,6 +12,9 @@ import com.kolee.composemusicexoplayer.data.roomdb.MusicRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -31,8 +35,18 @@ class PlayerViewModel @Inject constructor(
     private val _recommendationState = mutableStateOf(RecommendationState())
     val recommendationState: State<RecommendationState> = _recommendationState
 
+    private val audioDeviceManager = AudioDeviceManager(context)
+
+    private val _availableDevices = MutableStateFlow<List<AudioDeviceManager.AudioDevice>>(emptyList())
+    val availableDevicesFlow: StateFlow<List<AudioDeviceManager.AudioDevice>> = _availableDevices.asStateFlow()
+
+    private val _currentDevice = MutableStateFlow<AudioDeviceManager.AudioDevice?>(null)
+    val currentDeviceFlow: StateFlow<AudioDeviceManager.AudioDevice?> = _currentDevice.asStateFlow()
 
     init {
+        // Initialize audio devices
+        initializeAudioDevices()
+
         viewModelScope.launch {
             environment.getAllMusic().collect { musics ->
                 updateState { copy(musicList = musics) }
@@ -69,8 +83,30 @@ class PlayerViewModel @Inject constructor(
                 updateState { copy(playbackMode = mode) }
             }
         }
+    }
 
+    private fun initializeAudioDevices() {
+        viewModelScope.launch {
+            try {
+                // Get available devices from AudioDeviceManager
+                val devices = audioDeviceManager.availableDevices.value
+                if (devices != null) {
+                    _availableDevices.value = devices
+                }
 
+                // Set current device to the first available device or default
+                val currentDevice = audioDeviceManager.currentDevice.value
+                if (devices != null) {
+                    _currentDevice.value = currentDevice ?: devices.firstOrNull()
+                }
+
+                if (devices != null) {
+                    Log.d("PlayerViewModel", "Audio devices initialized: ${devices.size} devices found")
+                }
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "Failed to initialize audio devices", e)
+            }
+        }
     }
 
     fun onEvent(event: PlayerEvent) {
@@ -160,10 +196,7 @@ class PlayerViewModel @Inject constructor(
                     }
 
                     updateState {
-                        copy(
-                            musicList = updatedList,
-
-                        )
+                        copy(musicList = updatedList)
                     }
                 }
             }
@@ -239,7 +272,6 @@ class PlayerViewModel @Inject constructor(
             List(3) { song }
         } + recentlyPlayed
 
-        // Urutkan berdasarkan: liked -> recently played -> popular
         return (weightedSongs + allSongs)
             .distinctBy { it.audioId }
             .sortedWith(compareByDescending<MusicEntity> {
@@ -268,9 +300,7 @@ class PlayerViewModel @Inject constructor(
             .groupBy { it.country ?: "Global" }
             .filterKeys { it in supportedCountries || it == "Global" }
 
-
         val topCountries = if (likedSongs.isNotEmpty()) {
-
             likedSongs.asSequence()
                 .filter { it.country in supportedCountries }
                 .groupBy { it.country ?: "Global" }
@@ -285,13 +315,11 @@ class PlayerViewModel @Inject constructor(
                     country to songs
                 }
         } else {
-
             byCountry.entries
                 .sortedByDescending { it.value.size }
                 .take(3)
                 .associate { (country, songs) ->
-                    country to songs
-                        .take(5)
+                    country to songs.take(5)
                 }
         }
 
@@ -324,6 +352,39 @@ class PlayerViewModel @Inject constructor(
             .filter { (it.lastPlayedAt ?: 0) > 0 }
     }
 
+    fun selectAudioDevice(device: AudioDeviceManager.AudioDevice) {
+        viewModelScope.launch {
+            try {
+                audioDeviceManager.selectDevice(device)
+                _currentDevice.value = device
+                Log.d("PlayerViewModel", "Audio device selected: ${device.name}")
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "Failed to select audio device", e)
+            }
+        }
+    }
+
+    fun refreshAudioDevices() {
+        viewModelScope.launch {
+            try {
+                val devices = audioDeviceManager.availableDevices.value
+                if (devices != null) {
+                    _availableDevices.value = devices
+                }
+                if (devices != null) {
+                    Log.d("PlayerViewModel", "Audio devices refreshed: ${devices.size} devices found")
+                }
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "Failed to refresh audio devices", e)
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        audioDeviceManager.cleanup()
+    }
+
     fun fetchAndPlaySharedSong(songId: String) {
         viewModelScope.launch {
             try {
@@ -335,7 +396,6 @@ class PlayerViewModel @Inject constructor(
                 if (localSong != null) {
                     onEvent(PlayerEvent.Play(localSong))
                 } else {
-
                     val song = musicRepository.getSongById(songId.toLong())
 
                     if (!uiState.value.musicList.any { it.audioId == song.audioId }) {
@@ -345,7 +405,7 @@ class PlayerViewModel @Inject constructor(
                     onEvent(PlayerEvent.Play(song))
                 }
             } catch (e: Exception) {
-
+                Log.e("PlayerViewModel", "Failed to fetch and play shared song", e)
             }
         }
     }

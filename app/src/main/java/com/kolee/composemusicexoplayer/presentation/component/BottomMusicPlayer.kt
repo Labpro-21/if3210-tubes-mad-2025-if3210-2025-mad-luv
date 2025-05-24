@@ -87,6 +87,12 @@ fun BottomMusicPlayer(
             Spacer(modifier = Modifier.width(12.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
+                ShareButton(
+                    songId = currentMusic.audioId,
+                    modifier = Modifier
+                        .zIndex(1f)
+                )
+
                 IconButton(
                     onClick = {
                         playerVM.onEvent(PlayerEvent.ToggleLoved(musicUiState.currentPlayedMusic))
@@ -104,12 +110,6 @@ fun BottomMusicPlayer(
                         tint = if (musicUiState.currentPlayedMusic.loved) Color.Red else Color.White
                     )
                 }
-                ShareButton(
-                    songId = currentMusic.audioId,
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .zIndex(1f)
-                )
 
                 Spacer(modifier = Modifier.width(8.dp))
 

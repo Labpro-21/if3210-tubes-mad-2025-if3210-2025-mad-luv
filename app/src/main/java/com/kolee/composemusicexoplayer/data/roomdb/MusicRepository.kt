@@ -1,12 +1,14 @@
 package com.kolee.composemusicexoplayer.data.roomdb
 
+import com.kolee.composemusicexoplayer.data.model.MonthlyAnalytics
 import com.kolee.composemusicexoplayer.data.network.ApiClient
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import com.kolee.composemusicexoplayer.data.model.OnlineSong
 
 class MusicRepository @Inject constructor(
-    db: MusicDB
+    db: MusicDB,
+    private val analyticsRepository: AnalyticsRepository
 ) {
     private val musicDao = db.musicDao()
     private val api = ApiClient.apiService
@@ -18,6 +20,19 @@ class MusicRepository @Inject constructor(
     suspend fun updateMusic(music: MusicEntity) = musicDao.updateMusic(music)
     suspend fun getMusicById(audioId: Long): MusicEntity? = musicDao.getMusicById(audioId)
     fun getMusicByOwner(owner: String): Flow<List<MusicEntity>> = musicDao.getMusicByOwner(owner)
+
+    // Analytics methods
+    suspend fun recordListeningSession(
+        audioId: Long,
+        startTime: Long,
+        endTime: Long,
+        title: String,
+        artist: String
+    ) = analyticsRepository.recordListeningSession(audioId, startTime, endTime, title, artist)
+
+    suspend fun getMonthlyAnalytics(month: String): MonthlyAnalytics =
+        analyticsRepository.getMonthlyAnalytics(month)
+
     suspend fun getTopGlobalSongs(): List<MusicEntity> {
         return api.getTopGlobalSongs().map { it.toMusicEntity() }
     }
@@ -25,6 +40,8 @@ class MusicRepository @Inject constructor(
     suspend fun getTopSongsByCountry(code: String): List<MusicEntity> {
         return api.getTopSongsByCountry(code).map { it.toMusicEntity() }
     }
+
+    suspend fun getAlbumPathByAudioId(audioId: Long): String? = musicDao.getAlbumPathById(audioId)
 
     private fun OnlineSong.toMusicEntity(): MusicEntity {
         return MusicEntity(
@@ -46,5 +63,4 @@ class MusicRepository @Inject constructor(
         val seconds = parts.getOrNull(1)?.toLongOrNull() ?: 0L
         return (minutes * 60 + seconds) * 1000
     }
-
 }

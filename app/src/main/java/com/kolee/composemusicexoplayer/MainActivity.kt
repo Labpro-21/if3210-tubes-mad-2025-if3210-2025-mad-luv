@@ -19,8 +19,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.accompanist.navigation.material.*
 import com.kolee.composemusicexoplayer.data.auth.AuthViewModel
 import com.kolee.composemusicexoplayer.data.auth.AuthViewModelFactory
-import com.kolee.composemusicexoplayer.data.profile.ProfileViewModel
-import com.kolee.composemusicexoplayer.data.profile.ProfileViewModelFactory
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 import com.kolee.composemusicexoplayer.presentation.navigation.BottomNavItem
 import com.kolee.composemusicexoplayer.presentation.navigation.Navigation
@@ -36,6 +34,8 @@ import androidx.compose.material.ModalBottomSheetValue
 import androidx.navigation.compose.rememberNavController
 import com.kolee.composemusicexoplayer.data.auth.UserPreferences
 import com.kolee.composemusicexoplayer.data.network.NetworkSensing
+import com.kolee.composemusicexoplayer.data.profile.ProfileViewModel
+import com.kolee.composemusicexoplayer.data.profile.ProfileViewModelFactory
 import com.kolee.composemusicexoplayer.presentation.online_song.OnlineSongsViewModel
 
 

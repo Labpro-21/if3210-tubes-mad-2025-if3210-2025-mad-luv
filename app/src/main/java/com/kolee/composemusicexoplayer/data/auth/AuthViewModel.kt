@@ -83,10 +83,12 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                         onResult(true)
                     } ?: onResult(false)
                 } else {
+                    logout()
                     Log.e("Login", "Failed: ${response.code()} ${response.errorBody()?.string()}")
                     onResult(false)
                 }
             } catch (e: Exception) {
+                logout()
                 Log.e("Login", "Exception: ${e.message}")
                 onResult(false)
             }
@@ -137,6 +139,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     Result.success()
                 } catch (e: Exception) {
                     Log.e("AuthViewModel", "Error refreshing token: ${e.message}")
+                    logout()
                     Result.retry()
                 }
             } else {
@@ -148,6 +151,7 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                     Result.success()
                 } catch (e: Exception) {
                     Log.e("AuthViewModel", "Error refreshing token: ${e.message}")
+                    logout()
                     Result.retry()
                 }
             }

@@ -3,6 +3,7 @@ package com.kolee.composemusicexoplayer.presentation.library
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.MediaStore
@@ -39,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +66,7 @@ import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerEvent
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.kolee.composemusicexoplayer.data.auth.UserPreferences
 import com.kolee.composemusicexoplayer.data.network.NetworkSensing
 import com.kolee.composemusicexoplayer.presentation.component.AddSongDrawer
 import com.kolee.composemusicexoplayer.presentation.component.NetworkSensingScreen
@@ -108,6 +111,10 @@ class MusicAdapter(
             .error(R.drawable.ic_music_unknown)
             .diskCacheStrategy(DiskCacheStrategy.NONE)
             .into(holder.imageCover)
+
+        val showEditDelete = music.isDownloaded
+        holder.editButton.visibility = if (showEditDelete) View.GONE else View.VISIBLE
+        holder.deleteButton.visibility = if (showEditDelete) View.GONE else View.VISIBLE
 
 
         val isPlaying = music.audioId == currentlyPlayingId
@@ -207,6 +214,17 @@ fun LibraryScreen(
         var selectedTab by remember { mutableStateOf("All") }
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
+        val userPreferences = UserPreferences(context)
+        val currentUserEmail by userPreferences.getUserEmail.collectAsState(initial = "")
+
+        val userSongs = musicUiState.musicList.filter {
+            it.owner.equals(currentUserEmail, ignoreCase = true)
+        }
+
+        val downloadSongs = musicUiState.musicList.filter {
+            it.isDownloaded.equals(true)
+        }
+
 
         var showAddSongDrawer by remember { mutableStateOf(false) }
         var showEditSongForm by remember { mutableStateOf(false) }
@@ -218,7 +236,8 @@ fun LibraryScreen(
 
         val songsToDisplay = when (selectedTab) {
             "Liked" -> likedSongs
-            else -> allSongs
+            "Downloaded" -> downloadSongs
+            else -> userSongs
         }
 
         val recyclerViewRef = remember { mutableStateOf<RecyclerView?>(null) }
@@ -285,6 +304,7 @@ fun LibraryScreen(
                     ) {
                         ToggleTab("All", selectedTab == "All") { selectedTab = "All" }
                         ToggleTab("Liked", selectedTab == "Liked") { selectedTab = "Liked" }
+                        ToggleTab("Downloaded", selectedTab == "Downloaded") { selectedTab = "Downloaded" }
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))

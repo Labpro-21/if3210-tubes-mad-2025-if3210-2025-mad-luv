@@ -18,6 +18,7 @@ class MusicRepository @Inject constructor(
     suspend fun updateMusic(music: MusicEntity) = musicDao.updateMusic(music)
     suspend fun getMusicById(audioId: Long): MusicEntity? = musicDao.getMusicById(audioId)
     fun getMusicByOwner(owner: String): Flow<List<MusicEntity>> = musicDao.getMusicByOwner(owner)
+    suspend fun getDownloadedMusic(): Flow<List<MusicEntity>> = musicDao.getDownloadedMusic()
     suspend fun getTopGlobalSongs(): List<MusicEntity> {
         return api.getTopGlobalSongs().map { it.toMusicEntity() }
     }
@@ -35,6 +36,7 @@ class MusicRepository @Inject constructor(
             albumPath = this.artwork,
             audioPath = this.url,
             owner = this.country,
+            country = this.country,
             lastPlayedAt = 0L,
             loved = false
         )

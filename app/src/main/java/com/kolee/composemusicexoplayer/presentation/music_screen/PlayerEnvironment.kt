@@ -448,6 +448,13 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
 
         val filteredNewMusicList = newMusicList.map { it.copy(owner = userId) }
 
+        val downloadedMusic = musicRepository.getDownloadedMusic().first()
+        Log.d("MusicOwners", "Downloaded musics for user: $userId\n" +
+                downloadedMusic.joinToString("\n") { music ->
+                    "ID: ${music.audioId}, Title: ${music.title}, Path: ${music.audioPath}"
+                }
+        )
+
         val currentUserMusic = allMusics.value.filter { it.owner == userId }
         val globalsongs = musicRepository.getTopGlobalSongs()
         val countrysongs = musicRepository.getTopSongsByCountry(userCountry)

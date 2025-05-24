@@ -60,6 +60,7 @@ class OnlineSongsViewModel @Inject constructor(
             albumPath = this.artwork,
             audioPath = this.url,
             owner = this.country,
+            country = this.country,
             lastPlayedAt = 0L,
             loved = false
         )

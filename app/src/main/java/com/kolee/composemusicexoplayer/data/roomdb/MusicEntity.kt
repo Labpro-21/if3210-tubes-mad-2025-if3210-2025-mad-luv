@@ -16,6 +16,8 @@ data class MusicEntity(
     val lastPlayedAt: Long = 0L,
     val loved: Boolean = false,
     val owner: String,
+    val isDownloaded: Boolean = false,
+    val country: String = "LOCAL"
 ) {
     companion object {
         val default = MusicEntity(

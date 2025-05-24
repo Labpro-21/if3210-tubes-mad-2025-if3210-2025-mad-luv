@@ -16,7 +16,7 @@ import javax.inject.Inject
 class PlayerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val environment: PlayerEnvironment,
-    private val musicRepository: MusicRepository
+    val musicRepository: MusicRepository
 ) : StatefulViewModel<MusicUiState>(MusicUiState()) {
 
     init {

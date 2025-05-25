@@ -83,36 +83,49 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 super.onPlaybackStateChanged(playbackState)
-                if (playbackState == Player.STATE_ENDED) {
-                    when (playbackMode.value) {
-                        PlaybackMode.REPEAT_ALL -> {
-                            val nextSong = if (_isShuffleEnabled.value) {
-                                getNextShuffledSong(currentPlayedMusic.value)
-                            } else {
-                                val currentIndex = allMusics.value.indexOfFirst {
-                                    it.audioId == currentPlayedMusic.value.audioId
+                when (playbackState) {
+                    Player.STATE_READY -> {
+                        // Update duration when player is ready
+                        _currentDuration.value = this@apply.currentPosition
+                        if (this@apply.isPlaying) {
+                            startUpdatingProgress()
+                        }
+                    }
+                    Player.STATE_ENDED -> {
+                        stopUpdatingProgress()
+                        when (playbackMode.value) {
+                            PlaybackMode.REPEAT_ALL -> {
+                                val nextSong = if (_isShuffleEnabled.value) {
+                                    getNextShuffledSong(currentPlayedMusic.value)
+                                } else {
+                                    val currentIndex = allMusics.value.indexOfFirst {
+                                        it.audioId == currentPlayedMusic.value.audioId
+                                    }
+                                    when {
+                                        currentIndex == allMusics.value.lastIndex -> allMusics.value[0]
+                                        currentIndex != -1 -> allMusics.value[currentIndex + 1]
+                                        else -> allMusics.value[0]
+                                    }
                                 }
-                                when {
-                                    currentIndex == allMusics.value.lastIndex -> allMusics.value[0]
-                                    currentIndex != -1 -> allMusics.value[currentIndex + 1]
-                                    else -> allMusics.value[0]
+                                scope.launch {
+                                    play(nextSong)
                                 }
                             }
-                            scope.launch {
-                                play(nextSong)
-                                // Notification will be updated automatically by MusicController
+                            PlaybackMode.REPEAT_ONE -> {
+                                scope.launch {
+                                    play(currentPlayedMusic.value)
+                                }
+                            }
+                            PlaybackMode.REPEAT_OFF -> {
+                                this@apply.stop()
+                                _currentPlayedMusic.tryEmit(MusicEntity.default)
+                                _isPlaying.tryEmit(false)
                             }
                         }
-                        PlaybackMode.REPEAT_ONE -> {
-                            scope.launch {
-                                play(currentPlayedMusic.value)
-                                // Notification will be updated automatically by MusicController
-                            }
-                        }
-                        PlaybackMode.REPEAT_OFF -> {
-                            this@apply.stop()
-                            _currentPlayedMusic.tryEmit(MusicEntity.default)
-                            _isPlaying.tryEmit(false)
+                    }
+                    Player.STATE_BUFFERING -> {
+                        if (this@apply.isPlaying) {
+                            startUpdatingProgress()
                         }
                     }
                 }
@@ -121,6 +134,20 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 super.onIsPlayingChanged(isPlaying)
                 _isPlaying.tryEmit(isPlaying)
+                if (isPlaying) {
+                    startUpdatingProgress()
+                } else {
+                    stopUpdatingProgress()
+                }
+            }
+
+            override fun onPositionDiscontinuity(
+                oldPosition: androidx.media3.common.Player.PositionInfo,
+                newPosition: androidx.media3.common.Player.PositionInfo,
+                reason: Int
+            ) {
+                super.onPositionDiscontinuity(oldPosition, newPosition, reason)
+                _currentDuration.value = newPosition.positionMs
             }
         })
     }
@@ -294,10 +321,8 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
                 exoPlayer.setMediaItem(MediaItem.fromUri(music.audioPath.toUri()))
                 exoPlayer.prepare()
                 exoPlayer.play()
-                startUpdatingProgress()
             }
 
-            // Ensure the bottom player is shown
             setShowButtonMusicPlayer(true)
         }
     }
@@ -316,8 +341,15 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     }
 
     fun snapTo(duration: Long, fromUser: Boolean = true) {
-        _currentDuration.tryEmit(duration)
-        if (fromUser) playerHandler.post { exoPlayer.seekTo(duration) }
+        _currentDuration.value = duration
+        if (fromUser) {
+            playerHandler.post {
+                exoPlayer.seekTo(duration)
+                playerHandler.postDelayed({
+                    _currentDuration.value = exoPlayer.currentPosition
+                }, 100)
+            }
+        }
     }
 
     suspend fun setShowButtonMusicPlayer(isShowed: Boolean) {
@@ -367,8 +399,7 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         playerHandler.post {
             exoPlayer.pause()
         }
-        // The _isPlaying state will be updated by the ExoPlayer listener
-        startUpdatingProgress()
+
     }
 
     suspend fun resume() {
@@ -378,7 +409,6 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
             playerHandler.post {
                 exoPlayer.play()
             }
-            // The _isPlaying state will be updated by the ExoPlayer listener
         }
     }
 
@@ -434,19 +464,22 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     private val updateProgressRunnable = object : Runnable {
         override fun run() {
             if (exoPlayer.isPlaying) {
-                _currentDuration.value = exoPlayer.currentPosition
-                playerHandler.postDelayed(this, 1000)
+                val currentPos = exoPlayer.currentPosition
+                _currentDuration.value = currentPos
+                playerHandler.postDelayed(this, 250)
             }
         }
+    }
+
+    private fun startUpdatingProgress() {
+        playerHandler.removeCallbacks(updateProgressRunnable)
+        playerHandler.post(updateProgressRunnable)
     }
 
     fun updateCurrentDuration(newDuration: Long) {
         _currentDuration.value = newDuration
     }
 
-    private fun startUpdatingProgress() {
-        playerHandler.post(updateProgressRunnable)
-    }
 
     private fun stopUpdatingProgress() {
         playerHandler.removeCallbacks(updateProgressRunnable)

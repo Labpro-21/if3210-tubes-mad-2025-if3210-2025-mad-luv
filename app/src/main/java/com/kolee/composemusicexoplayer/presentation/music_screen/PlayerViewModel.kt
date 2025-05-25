@@ -332,7 +332,6 @@ class PlayerViewModel @Inject constructor(
             is PlayerEvent.RefreshMusicList -> {
                 viewModelScope.launch {
                     environment.refreshMusicList()
-                    // Also refresh analytics
                     loadCurrentMonthAnalytics()
                 }
             }

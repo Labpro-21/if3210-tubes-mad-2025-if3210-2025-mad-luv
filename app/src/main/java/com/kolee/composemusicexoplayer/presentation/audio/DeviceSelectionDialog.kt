@@ -111,16 +111,6 @@ fun DeviceSelectionDialog(
                 Text("Close")
             }
         },
-        dismissButton = {
-            if (currentDevice != null) {
-                TextButton(
-                    onClick = { viewModel.refreshAudioDevices() },
-                    enabled = !isSelecting
-                ) {
-                    Text("Refresh")
-                }
-            }
-        }
     )
 }
 

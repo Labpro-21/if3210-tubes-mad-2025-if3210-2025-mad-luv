@@ -18,10 +18,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,13 +84,6 @@ fun TopSongsDetailPage(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            Text(
-                text = "April 2025",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = buildAnnotatedString {
@@ -121,13 +110,12 @@ fun TopSongsDetailPage(
                             song = song
                         )
 
-                        // Add divider line except for the last item
                         if (index < topSongs.size - 1) {
                             Divider(
                                 color = Color.Gray.copy(alpha = 0.3f),
                                 thickness = 0.5.dp,
                                 modifier = Modifier.padding(
-                                    start = 48.dp, // Align with song info, skipping rank
+                                    start = 48.dp,
                                     top = 16.dp,
                                     bottom = 16.dp
                                 )
@@ -196,7 +184,6 @@ fun SongListItem(
             )
         }
 
-        // Album cover placeholder (square with rounded corners)
         AsyncImage(
             model = song.albumPath,
             contentDescription = "Album cover for ${song.title}",

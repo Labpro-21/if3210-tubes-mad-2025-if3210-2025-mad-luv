@@ -12,14 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
  import android.content.Context
  import android.net.Uri
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody
-import retrofit2.Response
-import retrofit2.http.*
+
 
 class ProfileViewModel(private val userPreferences: UserPreferences) : ViewModel() {
     private val repository = ProfileRepository()

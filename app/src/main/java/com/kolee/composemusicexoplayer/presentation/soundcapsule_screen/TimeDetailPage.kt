@@ -213,20 +213,19 @@ fun DailyChart(
 
             val canvasWidth = size.width
             val canvasHeight = size.height
-            val padding = 40.dp.toPx() // Reduced from 60 to 40
-            val bottomPadding = 50.dp.toPx() // More space for x-axis labels
-            val leftPadding = 50.dp.toPx() // More space for y-axis labels
-            val topPadding = 30.dp.toPx() // Less top padding
-            val rightPadding = 30.dp.toPx() // Less right padding
+            val padding = 40.dp.toPx()
+            val bottomPadding = 50.dp.toPx()
+            val leftPadding = 50.dp.toPx()
+            val topPadding = 30.dp.toPx()
+            val rightPadding = 30.dp.toPx()
 
             val chartWidth = canvasWidth - leftPadding - rightPadding
             val chartHeight = canvasHeight - topPadding - bottomPadding
 
-            // Calculate max value for scaling
             val maxMinutes = dailyStats.maxOfOrNull { (it.dailyDuration / 1000 / 60).toInt() } ?: 1
-            val maxValue = max(maxMinutes, 10) // Minimum 10 for better scaling
+            val maxValue = max(maxMinutes, 10)
 
-            // Draw chart background with rounded corners effect
+
             drawRoundRect(
                 color = Color(0xFF2A2A2A),
                 topLeft = Offset(leftPadding, topPadding),
@@ -235,7 +234,7 @@ fun DailyChart(
             )
 
             // Draw Y-axis labels (minutes)
-            val ySteps = 4 // Reduced from 5 to 4 for less clutter
+            val ySteps = 4
             for (i in 0..ySteps) {
                 val value = (maxValue * i / ySteps)
                 val y = topPadding + chartHeight - (i.toFloat() / ySteps * chartHeight)
@@ -296,7 +295,6 @@ fun DailyChart(
                         )
                     }
                 } catch (e: Exception) {
-                    // Fallback to index if date parsing fails
                     drawContext.canvas.nativeCanvas.apply {
                         drawText(
                             "${index + 1}",
@@ -312,7 +310,7 @@ fun DailyChart(
                 }
             }
 
-            // Draw main axis lines (thicker)
+            // Draw main axis lines
             drawLine(
                 color = Color.Gray,
                 start = Offset(leftPadding, topPadding + chartHeight),
@@ -327,7 +325,6 @@ fun DailyChart(
                 strokeWidth = 1.5.dp.toPx()
             )
 
-            // Draw axis titles (positioned better)
             drawContext.canvas.nativeCanvas.apply {
                 // Y-axis title
                 save()
@@ -375,10 +372,8 @@ fun DailyChart(
                         path.lineTo(x, y)
                     }
 
-                    // Draw data points with better styling
                     val isSelected = selectedPoint?.first == index
 
-                    // Draw outer circle for selected point
                     if (isSelected) {
                         drawCircle(
                             color = Color(0xFF1DB954).copy(alpha = 0.3f),
@@ -444,7 +439,6 @@ fun DailyChart(
                     }
                 }
 
-                // Draw the line with gradient effect
                 drawPath(
                     path = path,
                     color = Color(0xFF1DB954),

@@ -97,7 +97,6 @@ class PlayerViewModel @Inject constructor(
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     init {
-        // Initialize audio devices only if supported
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             initializeAudioDevices()
         }
@@ -162,11 +161,9 @@ class PlayerViewModel @Inject constructor(
                 delay(60000) // 1 minute
                 val currentTime = System.currentTimeMillis()
 
-                // Update analytics if playing and at least 1 minute has passed
                 if (uiState.value.isPlaying &&
                     currentTime - lastAnalyticsUpdate > 60000) {
 
-                    // Record partial session for real-time updates
                     recordPartialSession()
                     loadCurrentMonthAnalytics()
                     lastAnalyticsUpdate = currentTime
@@ -189,7 +186,6 @@ class PlayerViewModel @Inject constructor(
                     _availableDevices.value = devices
                 }
 
-                // Set current device to the first available device or default
                 val currentDevice = audioDeviceManager.currentDevice.value
                 if (devices != null) {
                     _currentDevice.value = currentDevice ?: devices.firstOrNull()
@@ -220,7 +216,6 @@ class PlayerViewModel @Inject constructor(
                     artist = currentMusic.artist
                 )
 
-                // Update analytics immediately after recording
                 loadCurrentMonthAnalytics()
             }
         }
@@ -246,7 +241,6 @@ class PlayerViewModel @Inject constructor(
                     artist = currentMusic.artist
                 )
 
-                // Reset start time for next partial session
                 currentSessionStartTime = currentTime
             }
         }
@@ -254,17 +248,14 @@ class PlayerViewModel @Inject constructor(
 
     private suspend fun loadCurrentMonthAnalytics() {
         try {
-            // PERBAIKAN: Gunakan format yang sama
             val currentDate = java.util.Calendar.getInstance()
-            val currentMonth = currentDate.get(java.util.Calendar.MONTH) + 1 // Convert to 1-based
+            val currentMonth = currentDate.get(java.util.Calendar.MONTH) + 1
             val currentYear = currentDate.get(java.util.Calendar.YEAR)
             val monthString = String.format("%04d-%02d", currentYear, currentMonth)
 
-            println("DEBUG: Loading current month analytics for: $monthString") // Debug log
             val analytics = musicRepository.getMonthlyAnalytics(monthString)
             _monthlyAnalytics.value = analytics
         } catch (e: Exception) {
-            println("DEBUG: Error loading current analytics: ${e.message}") // Debug log
             _monthlyAnalytics.value = null
         }
     }
@@ -273,7 +264,6 @@ class PlayerViewModel @Inject constructor(
         when (event) {
             is PlayerEvent.Play -> {
                 viewModelScope.launch {
-                    // Record previous session if any
                     recordCurrentSession()
 
                     val updatedMusic = event.musicEntity.copy(lastPlayedAt = System.currentTimeMillis())
@@ -295,12 +285,10 @@ class PlayerViewModel @Inject constructor(
             is PlayerEvent.PlayPause -> {
                 viewModelScope.launch {
                     if (event.isPlaying) {
-                        // Pausing - record current session
                         recordCurrentSession()
                         environment.pause()
                         showNotification(uiState.value.currentPlayedMusic, false)
                     } else {
-                        // Resuming - start new session
                         currentSessionStartTime = System.currentTimeMillis()
                         environment.resume()
                         showNotification(uiState.value.currentPlayedMusic, true)
@@ -392,7 +380,6 @@ class PlayerViewModel @Inject constructor(
                         copy(musicList = updatedList)
                     }
 
-                    // Refresh analytics after deletion
                     loadCurrentMonthAnalytics()
                 }
             }
@@ -533,12 +520,9 @@ class PlayerViewModel @Inject constructor(
         try {
             delay(100)
             val monthString = String.format("%04d-%02d", year, month + 1)
-            println("DEBUG: Fetching analytics for monthString: $monthString") // Debug log
             val analytics = musicRepository.getMonthlyAnalytics(monthString)
-            println("DEBUG: Analytics result: ${analytics?.totalMinutes} minutes") // Debug log
             _monthlyAnalytics.value = analytics
         } catch (e: Exception) {
-            println("DEBUG: Error fetching analytics: ${e.message}") // Debug log
             _monthlyAnalytics.value = null
         }
     }

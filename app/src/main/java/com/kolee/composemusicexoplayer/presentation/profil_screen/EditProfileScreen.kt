@@ -74,7 +74,7 @@ fun EditProfileScreen(
     val updateStatus by profileViewModel.updateStatus.collectAsState()
 
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) } // Track camera URI
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
     var currentLocation by remember { mutableStateOf("") }
     var currentLocationCode by remember { mutableStateOf("") }
     var showImagePickerDialog by remember { mutableStateOf(false) }
@@ -154,35 +154,30 @@ fun EditProfileScreen(
         }
     }
 
-    // Image picker launcher for gallery
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         selectedImageUri = uri
-        pendingCameraUri = null // Clear camera URI when gallery is used
+        pendingCameraUri = null
     }
 
-    // Camera launcher - FIXED
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && pendingCameraUri != null) {
-            // Set the selected URI to the camera URI when photo is taken successfully
             selectedImageUri = pendingCameraUri
         } else {
-            // Clear both URIs if camera failed
             selectedImageUri = null
             pendingCameraUri = null
         }
     }
 
-    // Permission launcher for camera - FIXED
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
             val imageUri = createImageUri(context)
-            pendingCameraUri = imageUri // Store camera URI separately
+            pendingCameraUri = imageUri
             cameraLauncher.launch(imageUri)
         } else {
             Toast.makeText(context, "Camera permission denied", Toast.LENGTH_SHORT).show()
@@ -230,7 +225,6 @@ fun EditProfileScreen(
         ) {
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Profile Picture Section - IMPROVED IMAGE HANDLING
             Box(
                 contentAlignment = Alignment.BottomEnd
             ) {
@@ -254,8 +248,8 @@ fun EditProfileScreen(
                             model = ImageRequest.Builder(LocalContext.current)
                                 .data(imageUrl)
                                 .crossfade(true)
-                                .memoryCachePolicy(CachePolicy.DISABLED) // Disable cache for immediate updates
-                                .diskCachePolicy(CachePolicy.DISABLED)   // Disable disk cache
+                                .memoryCachePolicy(CachePolicy.DISABLED)
+                                .diskCachePolicy(CachePolicy.DISABLED)
                                 .build(),
                             contentDescription = "Profile Image",
                             contentScale = ContentScale.Crop,
@@ -491,7 +485,6 @@ fun EditProfileScreen(
     }
 }
 
-// Enhanced Location Options Dialog with Maps Integration
 @Composable
 fun LocationOptionsDialogWithManualInput(
     locationUtils: LocationUtils,
@@ -802,7 +795,6 @@ fun LocationOptionsDialogWithManualInput(
     )
 }
 
-// ===== HELPER FUNCTION =====
 fun parseCoordinateString(input: String): LocationCoordinates? {
     return try {
         val cleanInput = input.trim()

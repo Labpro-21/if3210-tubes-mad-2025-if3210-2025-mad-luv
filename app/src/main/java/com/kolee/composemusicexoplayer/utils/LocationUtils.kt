@@ -159,227 +159,7 @@ class LocationUtils(private val context: Context) {
         }
     }
 
-    // ENHANCED: Parse location with multiple format support
-    fun parseLocationFromIntent(data: Intent?): LocationCoordinates? {
-        return try {
-            data?.let { intent ->
-                Log.d("LocationUtils", "Parsing intent: ${intent.data}, extras: ${intent.extras}")
 
-                when {
-                    // Method 1: Direct coordinate extras
-                    intent.hasExtra(EXTRA_LATITUDE) && intent.hasExtra(EXTRA_LONGITUDE) -> {
-                        val latitude = intent.getDoubleExtra(EXTRA_LATITUDE, 0.0)
-                        val longitude = intent.getDoubleExtra(EXTRA_LONGITUDE, 0.0)
-                        val address = intent.getStringExtra(EXTRA_ADDRESS)
-                        LocationCoordinates(latitude, longitude, address)
-                    }
-
-                    // Method 2: URI data parsing
-                    intent.data != null -> {
-                        parseGeoUri(intent.data!!)
-                    }
-
-                    // Method 3: Check for Place data (Google Places API)
-                    intent.hasExtra("place") -> {
-                        parsePlaceData(intent)
-                    }
-
-                    // Method 4: Search for coordinate patterns in all extras
-                    else -> {
-                        parseCoordinatesFromExtras(intent)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("LocationUtils", "Error parsing location from intent", e)
-            null
-        }
-    }
-
-    // ENHANCED: Parse Google Places data
-    private fun parsePlaceData(intent: Intent): LocationCoordinates? {
-        return try {
-            val placeData = intent.getParcelableExtra<android.os.Parcelable>("place")
-            placeData?.let {
-                // This would need Google Places API integration
-                // For now, return null and let other methods handle it
-                null
-            }
-        } catch (e: Exception) {
-            Log.e("LocationUtils", "Error parsing place data", e)
-            null
-        }
-    }
-
-    // ENHANCED: Search for coordinates in all intent extras
-    private fun parseCoordinatesFromExtras(intent: Intent): LocationCoordinates? {
-        return try {
-            val extras = intent.extras
-            extras?.let { bundle ->
-                // Look for common coordinate key patterns
-                val possibleLatKeys = listOf("lat", "latitude", "geo_lat", "location_lat")
-                val possibleLngKeys = listOf("lng", "lon", "longitude", "geo_lng", "geo_lon", "location_lng", "location_lon")
-
-                var latitude: Double? = null
-                var longitude: Double? = null
-
-                // Search for latitude
-                for (key in possibleLatKeys) {
-                    if (bundle.containsKey(key)) {
-                        latitude = when (val value = bundle.get(key)) {
-                            is Double -> value
-                            is Float -> value.toDouble()
-                            is String -> value.toDoubleOrNull()
-                            else -> null
-                        }
-                        if (latitude != null) break
-                    }
-                }
-
-                // Search for longitude
-                for (key in possibleLngKeys) {
-                    if (bundle.containsKey(key)) {
-                        longitude = when (val value = bundle.get(key)) {
-                            is Double -> value
-                            is Float -> value.toDouble()
-                            is String -> value.toDoubleOrNull()
-                            else -> null
-                        }
-                        if (longitude != null) break
-                    }
-                }
-
-                if (latitude != null && longitude != null) {
-                    LocationCoordinates(latitude, longitude)
-                } else null
-            }
-        } catch (e: Exception) {
-            Log.e("LocationUtils", "Error parsing coordinates from extras", e)
-            null
-        }
-    }
-
-    // ENHANCED: Parse geo URI with more format support
-    private fun parseGeoUri(uri: Uri): LocationCoordinates? {
-        return try {
-            val uriString = uri.toString()
-            Log.d("LocationUtils", "Parsing URI: $uriString")
-
-            when {
-                // Format: geo:lat,lng
-                uriString.startsWith("geo:") -> {
-                    parseStandardGeoUri(uriString)
-                }
-
-                // Format: Google Maps URL with @lat,lng
-                uriString.contains("@") && (uriString.contains("google.com/maps") || uriString.contains("maps.google")) -> {
-                    parseGoogleMapsUrl(uriString)
-                }
-
-                // Format: URL with lat/lng parameters
-                uriString.contains("lat=") && uriString.contains("lng=") -> {
-                    parseParameterizedUrl(uri)
-                }
-
-                // Format: URL with q=lat,lng
-                uriString.contains("q=") -> {
-                    parseQueryUrl(uri)
-                }
-
-                else -> {
-                    Log.w("LocationUtils", "Unrecognized URI format: $uriString")
-                    null
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("LocationUtils", "Error parsing geo URI", e)
-            null
-        }
-    }
-
-    private fun parseStandardGeoUri(uriString: String): LocationCoordinates? {
-        return try {
-            val geoData = uriString.substringAfter("geo:")
-            val coordinates = geoData.substringBefore("?").split(",")
-
-            if (coordinates.size >= 2) {
-                val latitude = coordinates[0].toDoubleOrNull()
-                val longitude = coordinates[1].toDoubleOrNull()
-
-                if (latitude != null && longitude != null &&
-                    latitude >= -90 && latitude <= 90 &&
-                    longitude >= -180 && longitude <= 180) {
-                    LocationCoordinates(latitude, longitude)
-                } else null
-            } else null
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun parseGoogleMapsUrl(uriString: String): LocationCoordinates? {
-        return try {
-            val atIndex = uriString.indexOf("@")
-            if (atIndex != -1) {
-                val afterAt = uriString.substring(atIndex + 1)
-                val coords = afterAt.split(",")
-
-                if (coords.size >= 2) {
-                    val latitude = coords[0].toDoubleOrNull()
-                    val longitude = coords[1].toDoubleOrNull()
-
-                    if (latitude != null && longitude != null &&
-                        latitude >= -90 && latitude <= 90 &&
-                        longitude >= -180 && longitude <= 180) {
-                        LocationCoordinates(latitude, longitude)
-                    } else null
-                } else null
-            } else null
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun parseParameterizedUrl(uri: Uri): LocationCoordinates? {
-        return try {
-            val latParam = uri.getQueryParameter("lat") ?: uri.getQueryParameter("latitude")
-            val lngParam = uri.getQueryParameter("lng") ?: uri.getQueryParameter("longitude") ?: uri.getQueryParameter("lon")
-
-            val latitude = latParam?.toDoubleOrNull()
-            val longitude = lngParam?.toDoubleOrNull()
-
-            if (latitude != null && longitude != null &&
-                latitude >= -90 && latitude <= 90 &&
-                longitude >= -180 && longitude <= 180) {
-                LocationCoordinates(latitude, longitude)
-            } else null
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun parseQueryUrl(uri: Uri): LocationCoordinates? {
-        return try {
-            val query = uri.getQueryParameter("q")
-            query?.let {
-                val coords = it.split(",")
-                if (coords.size >= 2) {
-                    val latitude = coords[0].trim().toDoubleOrNull()
-                    val longitude = coords[1].trim().toDoubleOrNull()
-
-                    if (latitude != null && longitude != null &&
-                        latitude >= -90 && latitude <= 90 &&
-                        longitude >= -180 && longitude <= 180) {
-                        LocationCoordinates(latitude, longitude)
-                    } else null
-                } else null
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    // ENHANCED: Get country code with better error handling and caching
     private suspend fun getCountryCodeFromLocation(latitude: Double, longitude: Double): String? {
         return try {
             // Validate coordinates
@@ -420,44 +200,7 @@ class LocationUtils(private val context: Context) {
         }
     }
 
-    // ENHANCED: Validate coordinates
-    fun isValidCoordinates(latitude: Double, longitude: Double): Boolean {
-        return latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180
-    }
 
-    // ENHANCED: Get readable location description
-    suspend fun getLocationDescription(latitude: Double, longitude: Double): String? {
-        return try {
-            val addresses = withContext(Dispatchers.IO) {
-                geocoder.getFromLocation(latitude, longitude, 1)
-            }
-
-            if (!addresses.isNullOrEmpty()) {
-                val address = addresses[0]
-                buildString {
-                    address.locality?.let { append(it) }
-                    if (isNotEmpty() && !address.countryName.isNullOrBlank()) {
-                        append(", ")
-                    }
-                    address.countryName?.let { append(it) }
-                }.takeIf { it.isNotBlank() }
-            } else null
-        } catch (e: Exception) {
-            Log.e("LocationUtils", "Error getting location description", e)
-            null
-        }
-    }
-
-    // NEW: Create custom location picker intent as fallback
-    private fun createCustomLocationPickerIntent(): Intent {
-        return Intent(Intent.ACTION_VIEW).apply {
-            // Open Google Maps web version with a specific query for location picking
-            data = Uri.parse("https://www.google.com/maps/@0,0,2z")
-        }
-    }
-
-
-    // Convert country code to country name for display
     fun getCountryName(countryCode: String): String {
         return try {
             val locale = Locale("", countryCode)
@@ -467,7 +210,6 @@ class LocationUtils(private val context: Context) {
         }
     }
 
-    // Get list of common countries with their codes
     fun getCommonCountries(): List<CountryInfo> {
         return listOf(
             CountryInfo("US", "United States"),
@@ -526,14 +268,14 @@ data class CountryInfo(
     override fun toString(): String = name
 }
 
-// Enhanced data class for coordinates with more information
+
 data class LocationCoordinates(
     val latitude: Double,
     val longitude: Double,
     val address: String? = null
 )
 
-// Extension functions for easy usage
+
 fun LocationResult.onSuccess(action: (String) -> Unit): LocationResult {
     if (this is LocationResult.Success) {
         action(countryCode)
@@ -548,7 +290,7 @@ fun LocationResult.onError(action: (String) -> Unit): LocationResult {
     return this
 }
 
-// NEW: Extension functions for LocationDetailResult
+
 fun LocationDetailResult.onSuccess(action: (String, String, String, String) -> Unit): LocationDetailResult {
     if (this is LocationDetailResult.Success) {
         action(countryCode, countryName, city, fullAddress)

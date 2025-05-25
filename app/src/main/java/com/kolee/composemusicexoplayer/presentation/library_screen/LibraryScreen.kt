@@ -83,8 +83,8 @@ class MusicAdapter(
         val imageCover: ImageView = view.findViewById(R.id.imageCover)
         val textTitle: TextView = view.findViewById(R.id.textTitle)
         val textArtist: TextView = view.findViewById(R.id.textArtist)
-        val editButton: ImageView = view.findViewById(R.id.imageEdit)
-        val deleteButton: ImageView = view.findViewById(R.id.imageDelete)
+        val editButton: ImageView? = view.findViewById(R.id.imageEdit)
+        val deleteButton: ImageView? = view.findViewById(R.id.imageDelete)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MusicViewHolder {
@@ -112,8 +112,8 @@ class MusicAdapter(
             .into(holder.imageCover)
 
         val showEditDelete = music.isDownloaded
-        holder.editButton.visibility = if (showEditDelete) View.GONE else View.VISIBLE
-        holder.deleteButton.visibility = if (showEditDelete) View.GONE else View.VISIBLE
+        holder.editButton?.visibility = if (showEditDelete) View.GONE else View.VISIBLE
+        holder.deleteButton?.visibility = if (showEditDelete) View.GONE else View.VISIBLE
 
         val isPlaying = music.audioId == currentlyPlayingId
 
@@ -128,12 +128,8 @@ class MusicAdapter(
             onItemClick(music)
         }
 
-        holder.editButton.setOnClickListener {
-            onEdit(music)
-        }
-        holder.deleteButton.setOnClickListener {
-            onDelete(music)
-        }
+        holder.editButton?.setOnClickListener { onEdit(music) }
+        holder.deleteButton?.setOnClickListener { onDelete(music) }
     }
 
     override fun getItemCount(): Int = musicList.size

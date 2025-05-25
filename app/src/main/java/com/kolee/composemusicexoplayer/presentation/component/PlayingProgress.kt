@@ -4,15 +4,12 @@ import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerEvent
 import com.kolee.composemusicexoplayer.ui.theme.TextDefaultColor
-import kotlin.math.min
 import kotlin.time.Duration.Companion.milliseconds
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 
@@ -27,40 +24,31 @@ fun PlayingProgress(
 ) {
     val musicUiState by playerVM.uiState.collectAsState()
 
-    var sliderPosition by rememberSaveable { mutableStateOf(0f) }
-    var internalCurrentDuration by rememberSaveable { mutableStateOf(musicUiState.currentDuration) }
+    var sliderPosition by remember { mutableFloatStateOf(0f) }
     var isUserInteracting by remember { mutableStateOf(false) }
-    var previousSongId by rememberSaveable { mutableStateOf(musicUiState.currentPlayedMusic.audioId) }
-
-    LaunchedEffect(isPlaying) {
-        while (isPlaying && maxDuration > 0 && !isUserInteracting) {
-            kotlinx.coroutines.delay(100)
-            if(internalCurrentDuration>maxDuration){
-                sliderPosition = 0f
-                internalCurrentDuration = 0L
-            }
-            internalCurrentDuration += 100
-            sliderPosition = internalCurrentDuration.toFloat() / maxDuration
-        }
-    }
-
-    LaunchedEffect(currentDuration) {
-        internalCurrentDuration = currentDuration
-        if (!isUserInteracting) {
-            sliderPosition = internalCurrentDuration.toFloat() / maxDuration
-        }
-    }
+    var previousSongId by remember { mutableStateOf(musicUiState.currentPlayedMusic.audioId) }
 
     LaunchedEffect(musicUiState.currentPlayedMusic.audioId) {
         if (musicUiState.currentPlayedMusic.audioId != previousSongId) {
             sliderPosition = 0f
-            internalCurrentDuration = 0L
             previousSongId = musicUiState.currentPlayedMusic.audioId
         }
     }
 
-    val currentMinutes = internalCurrentDuration.milliseconds.inWholeMinutes
-    val currentSeconds = internalCurrentDuration.milliseconds.inWholeSeconds % 60
+    LaunchedEffect(currentDuration, maxDuration, isUserInteracting) {
+        if (!isUserInteracting && maxDuration > 0) {
+            sliderPosition = (currentDuration.toFloat() / maxDuration).coerceIn(0f, 1f)
+        }
+    }
+
+    val displayCurrentDuration = if (isUserInteracting) {
+        (sliderPosition * maxDuration).toLong()
+    } else {
+        currentDuration
+    }
+
+    val currentMinutes = displayCurrentDuration.milliseconds.inWholeMinutes
+    val currentSeconds = displayCurrentDuration.milliseconds.inWholeSeconds % 60
     val currentDurationString = String.format("%02d:%02d", currentMinutes, currentSeconds)
 
     val maxMinutes = maxDuration.milliseconds.inWholeMinutes
@@ -69,16 +57,16 @@ fun PlayingProgress(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Slider(
-            value = sliderPosition.coerceIn(0f, 1f),
-            onValueChange = {
-                sliderPosition = it
+            value = sliderPosition,
+            onValueChange = { newValue ->
+                sliderPosition = newValue
                 isUserInteracting = true
-                internalCurrentDuration = (it * maxDuration).toLong()
             },
             onValueChangeFinished = {
+                val seekPosition = (sliderPosition * maxDuration).toLong()
                 onChangeFinished(sliderPosition)
+                playerVM.onEvent(PlayerEvent.UpdateProgress(seekPosition))
                 isUserInteracting = false
-                playerVM.onEvent(PlayerEvent.UpdateProgress(internalCurrentDuration))
             },
             modifier = Modifier
                 .fillMaxWidth()

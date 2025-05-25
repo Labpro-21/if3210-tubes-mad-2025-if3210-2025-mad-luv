@@ -295,12 +295,10 @@ class PlayerViewModel @Inject constructor(
             is PlayerEvent.PlayPause -> {
                 viewModelScope.launch {
                     if (event.isPlaying) {
-                        // Pausing - record current session
                         recordCurrentSession()
                         environment.pause()
                         showNotification(uiState.value.currentPlayedMusic, false)
                     } else {
-                        // Resuming - start new session
                         currentSessionStartTime = System.currentTimeMillis()
                         environment.resume()
                         showNotification(uiState.value.currentPlayedMusic, true)
@@ -344,7 +342,6 @@ class PlayerViewModel @Inject constructor(
             is PlayerEvent.RefreshMusicList -> {
                 viewModelScope.launch {
                     environment.refreshMusicList()
-                    // Also refresh analytics
                     loadCurrentMonthAnalytics()
                 }
             }

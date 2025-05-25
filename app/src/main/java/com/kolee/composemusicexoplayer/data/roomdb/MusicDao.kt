@@ -26,7 +26,7 @@ interface MusicDao {
     @Query("SELECT * FROM MusicEntity WHERE audioId = :audioId LIMIT 1")
     suspend fun getMusicById(audioId: Long): MusicEntity?
 
-    @Query("SELECT * FROM MusicEntity WHERE owner = :owner")
+    @Query("SELECT * FROM MusicEntity WHERE owner LIKE '%' || :owner || '%'")
     fun getMusicByOwner(owner: String): Flow<List<MusicEntity>>
 
     @Query("SELECT * FROM MusicEntity WHERE isDownloaded = 1")

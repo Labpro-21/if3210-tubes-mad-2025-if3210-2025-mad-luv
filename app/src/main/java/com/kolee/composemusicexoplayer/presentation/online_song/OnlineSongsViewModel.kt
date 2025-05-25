@@ -59,7 +59,7 @@ class OnlineSongsViewModel @Inject constructor(
             duration = durationToMillis(this.duration),
             albumPath = this.artwork,
             audioPath = this.url,
-            owner = this.country,
+            owner = listOf(this.country),
             country = this.country,
             lastPlayedAt = 0L,
             loved = false

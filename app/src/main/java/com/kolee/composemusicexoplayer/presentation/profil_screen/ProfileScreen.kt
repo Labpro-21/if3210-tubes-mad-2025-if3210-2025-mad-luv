@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
@@ -43,8 +44,13 @@ import com.kolee.composemusicexoplayer.data.model.SongStats
 import com.kolee.composemusicexoplayer.data.model.StreakData
 import com.kolee.composemusicexoplayer.data.network.NetworkSensing
 import com.kolee.composemusicexoplayer.data.profile.ProfileViewModel
+import com.kolee.composemusicexoplayer.data.roomdb.MusicEntity
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
+import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerEvent
 import com.kolee.composemusicexoplayer.presentation.component.NetworkSensingScreen
+import com.kolee.composemusicexoplayer.presentation.component.BottomMusicPlayerHeight
+import com.kolee.composemusicexoplayer.presentation.component.BottomMusicPlayerImpl
+import com.kolee.composemusicexoplayer.presentation.MusicPlayerSheet.MusicPlayerSheet
 import com.kolee.composemusicexoplayer.presentation.profile_screen.EditProfileScreen
 import com.kolee.composemusicexoplayer.utils.AnalyticsExporter
 import com.kolee.composemusicexoplayer.utils.ExportFormat
@@ -58,6 +64,7 @@ fun ProfileScreen(
     playerViewModel: PlayerViewModel,
     authViewModel: AuthViewModel,
     networkSensing: NetworkSensing,
+    navController: NavHostController, // Add navController parameter
     onTopArtistsClick: (List<ArtistStats>) -> Unit = {},
     onTopSongsClick: (List<SongStats>) -> Unit = {},
     onTimeDetailClick: (List<DailyListeningTime>) -> Unit = {},
@@ -67,6 +74,10 @@ fun ProfileScreen(
     val profileState by viewModel.profile.collectAsState()
     val uiState by playerViewModel.uiState.collectAsState()
     val monthlyAnalytics by playerViewModel.monthlyAnalytics.collectAsState()
+
+    // Player state management
+    var open = uiState.isPlayerExpanded
+    val isMusicPlaying = uiState.currentPlayedMusic != MusicEntity.default
 
     // Current date
     val currentDate = Calendar.getInstance()
@@ -90,7 +101,12 @@ fun ProfileScreen(
 
     var showExportDialog by remember { mutableStateOf(false) }
 
-    // Initial load
+    // Update show bottom player when music changes
+    LaunchedEffect(key1 = uiState.currentPlayedMusic) {
+        val isShowed = (uiState.currentPlayedMusic != MusicEntity.default)
+        playerViewModel.onEvent(PlayerEvent.SetShowBottomPlayer(isShowed))
+    }
+
     LaunchedEffect(Unit) {
         viewModel.resetProfile()
         viewModel.fetchProfile()
@@ -102,207 +118,260 @@ fun ProfileScreen(
         playerViewModel.getMonthAnalyticsForMonth(selectedMonth, selectedYear)
     }
 
-    val allSongs by remember { derivedStateOf { uiState.musicList.size } }
-    val likedSongs by remember { derivedStateOf { playerViewModel.getLoved().size } }
-    val listenedSongs by remember { derivedStateOf { playerViewModel.getListenedSongs().size } }
+    val currentUserEmail = profileState?.email ?: ""
+
+    val allSongs by remember(uiState.musicList, currentUserEmail) {
+        derivedStateOf {
+            uiState.musicList
+                .filter { music -> music.owner.any { it.equals(currentUserEmail, ignoreCase = true) } }
+                .size
+        }
+    }
+
+    val likedSongs by remember(playerViewModel.getLoved(), currentUserEmail) {
+        derivedStateOf {
+            playerViewModel.getLoved()
+                .filter { music -> music.owner.any { it.equals(currentUserEmail, ignoreCase = true) } }
+                .size
+        }
+    }
+
+    val listenedSongs by remember(playerViewModel.getListenedSongs(), currentUserEmail) {
+        derivedStateOf {
+            playerViewModel.getListenedSongs()
+                .filter { music -> music.owner.any { it.equals(currentUserEmail, ignoreCase = true) } }
+                .size
+        }
+    }
 
     NetworkSensingScreen(
         networkSensing = networkSensing,
         showFallbackPage = !isConnected && profileState == null
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFF015871), Color.Black)
-                    )
-                )
-                .verticalScroll(rememberScrollState())
-                .padding(top = 48.dp, bottom = 100.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            profileState?.let { profile ->
-                val imageUrl by remember(profile.profilePhoto) {
-                    mutableStateOf("http://34.101.226.132:3000/uploads/profile-picture/${profile.profilePhoto}")
-                }
-
-                Box(contentAlignment = Alignment.BottomEnd) {
-                    Image(
-                        painter = rememberAsyncImagePainter(
-                            ImageRequest.Builder(LocalContext.current)
-                                .data(imageUrl)
-                                .placeholder(R.drawable.profile)
-                                .error(R.drawable.profile)
-                                .build()
-                        ),
-                        contentDescription = "Profile Image",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(120.dp)
-                            .clip(CircleShape)
-                    )
-
-                    IconButton(
-                        onClick = { /* TODO: Edit profile picture */ },
-                        modifier = Modifier
-                            .offset(x = (-8).dp, y = (-8).dp)
-                            .background(Color.White, CircleShape)
-                            .size(28.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Profile Picture",
-                            tint = Color.Black,
-                            modifier = Modifier.size(16.dp)
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFF015871), Color.Black)
                         )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                profile.username?.let { Text(text = it, fontSize = 20.sp, color = Color.White) }
-                profile.location?.let { Text(text = it, color = Color.LightGray) }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = onEditProfileClick, // Langsung panggil callback
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.DarkGray)
-                ) {
-                    Text(text = "Edit Profile", color = Color.White)
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    ProfileStat(count = allSongs.toString(), label = "SONGS")
-                    ProfileStat(count = likedSongs.toString(), label = "LIKED")
-                    ProfileStat(count = listenedSongs.toString(), label = "LISTENED")
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Sound Capsule Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Your Sound Capsule",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
                     )
-                    Row {
+                    .verticalScroll(rememberScrollState())
+                    .padding(
+                        top = 48.dp,
+                        bottom = if (isMusicPlaying && !open) BottomMusicPlayerHeight.value + 16.dp else 100.dp
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                profileState?.let { profile ->
+                    val imageUrl by remember(profile.profilePhoto) {
+                        mutableStateOf("http://34.101.226.132:3000/uploads/profile-picture/${profile.profilePhoto}")
+                    }
+
+                    Box(contentAlignment = Alignment.BottomEnd) {
+                        Image(
+                            painter = rememberAsyncImagePainter(
+                                ImageRequest.Builder(LocalContext.current)
+                                    .data(imageUrl)
+                                    .placeholder(R.drawable.profile)
+                                    .error(R.drawable.profile)
+                                    .build()
+                            ),
+                            contentDescription = "Profile Image",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(CircleShape)
+                        )
+
                         IconButton(
-                            onClick = {
-                                monthlyAnalytics?.let {
-                                    showExportDialog = true
-                                }
-                            },
-                            modifier = Modifier.size(24.dp),
-                            enabled = monthlyAnalytics != null && monthlyAnalytics!!.totalMinutes > 0
+                            onClick = { /* TODO: Edit profile picture */ },
+                            modifier = Modifier
+                                .offset(x = (-8).dp, y = (-8).dp)
+                                .background(Color.White, CircleShape)
+                                .size(28.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Download,
-                                contentDescription = "Export Analytics",
-                                tint = if (monthlyAnalytics != null && monthlyAnalytics!!.totalMinutes > 0)
-                                    Color.White else Color.Gray,
-                                modifier = Modifier.size(20.dp)
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Profile Picture",
+                                tint = Color.Black,
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Month/Year Selector
-                MonthYearSelector(
-                    selectedMonth = selectedMonth,
-                    selectedYear = selectedYear,
-                    onMonthSelected = { newMonth ->
-                        selectedMonth = newMonth
-                    },
-                    onYearSelected = { newYear ->
-                        selectedYear = newYear
-                    },
-                    modifier = Modifier.padding(horizontal = 32.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Sound Capsule Content
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp)
-                ) {
-                    if (monthlyAnalytics != null && monthlyAnalytics!!.totalMinutes > 0) {
-                        MonthHeader(currentMonth = selectedMonthYear)
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Time listened card
-                        TimeListenedCard(
-                            totalMinutes = monthlyAnalytics!!.totalMinutes,
-                            dailyStats = monthlyAnalytics!!.dailyStats,
-                            onTimeDetailClick = { onTimeDetailClick(monthlyAnalytics!!.dailyStats) }
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Top Artist and Song Row
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            TopArtistCard(
-                                topArtists = monthlyAnalytics!!.topArtists,
-                                onArrowClick = { onTopArtistsClick(monthlyAnalytics!!.topArtists) },
-                                modifier = Modifier.weight(1f)
-                            )
-                            TopSongCard(
-                                topSongs = monthlyAnalytics!!.topSongs,
-                                onArrowClick = { onTopSongsClick(monthlyAnalytics!!.topSongs) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Achievement/Streak Card
-                        if (monthlyAnalytics!!.longestStreak != null) {
-                            StreakAchievementCard(streakData = monthlyAnalytics!!.longestStreak!!)
-                        } else {
-                            NoStreakCard()
-                        }
-                    } else {
-                        NoDataAvailableCard(currentMonth = selectedMonthYear)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-                Button(
-                    onClick = { authViewModel.logout() },
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                ) {
-                    Text(text = "Logout")
-                }
-            } ?: run {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(32.dp)
-                ) {
-                    CircularProgressIndicator(color = Color.White)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = { authViewModel.logout() }) {
+
+                    profile.username?.let { Text(text = it, fontSize = 20.sp, color = Color.White) }
+                    profile.location?.let { Text(text = it, color = Color.LightGray) }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = onEditProfileClick,
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.DarkGray)
+                    ) {
+                        Text(text = "Edit Profile", color = Color.White)
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        ProfileStat(count = allSongs.toString(), label = "SONGS")
+                        ProfileStat(count = likedSongs.toString(), label = "LIKED")
+                        ProfileStat(count = listenedSongs.toString(), label = "LISTENED")
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // Sound Capsule Header
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Your Sound Capsule",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Row {
+                            IconButton(
+                                onClick = {
+                                    monthlyAnalytics?.let {
+                                        showExportDialog = true
+                                    }
+                                },
+                                modifier = Modifier.size(24.dp),
+                                enabled = monthlyAnalytics != null && monthlyAnalytics!!.totalMinutes > 0
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Download,
+                                    contentDescription = "Export Analytics",
+                                    tint = if (monthlyAnalytics != null && monthlyAnalytics!!.totalMinutes > 0)
+                                        Color.White else Color.Gray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Month/Year Selector
+                    MonthYearSelector(
+                        selectedMonth = selectedMonth,
+                        selectedYear = selectedYear,
+                        onMonthSelected = { newMonth ->
+                            selectedMonth = newMonth
+                        },
+                        onYearSelected = { newYear ->
+                            selectedYear = newYear
+                        },
+                        modifier = Modifier.padding(horizontal = 32.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Sound Capsule Content
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp)
+                    ) {
+                        if (monthlyAnalytics != null && monthlyAnalytics!!.totalMinutes > 0) {
+                            MonthHeader(currentMonth = selectedMonthYear)
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Time listened card
+                            TimeListenedCard(
+                                totalMinutes = monthlyAnalytics!!.totalMinutes,
+                                dailyStats = monthlyAnalytics!!.dailyStats,
+                                onTimeDetailClick = { onTimeDetailClick(monthlyAnalytics!!.dailyStats) }
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Top Artist and Song Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                TopArtistCard(
+                                    topArtists = monthlyAnalytics!!.topArtists,
+                                    onArrowClick = { onTopArtistsClick(monthlyAnalytics!!.topArtists) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                                TopSongCard(
+                                    topSongs = monthlyAnalytics!!.topSongs,
+                                    onArrowClick = { onTopSongsClick(monthlyAnalytics!!.topSongs) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Achievement/Streak Card
+                            if (monthlyAnalytics!!.longestStreak != null) {
+                                StreakAchievementCard(streakData = monthlyAnalytics!!.longestStreak!!)
+                            } else {
+                                NoStreakCard()
+                            }
+                        } else {
+                            NoDataAvailableCard(currentMonth = selectedMonthYear)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+                    Button(
+                        onClick = { authViewModel.logout() },
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    ) {
                         Text(text = "Logout")
+                    }
+                } ?: run {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(32.dp)
+                    ) {
+                        CircularProgressIndicator(color = Color.White)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { authViewModel.logout() }) {
+                            Text(text = "Logout")
+                        }
+                    }
+                }
+            }
+
+            // Player UI - positioned at the bottom
+            if (isMusicPlaying) {
+                if (open) {
+                    MusicPlayerSheet(
+                        playerVM = playerViewModel,
+                        navController = navController,
+                        onCollapse = { playerViewModel.setPlayerExpanded(false) }
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                    ) {
+                        BottomMusicPlayerImpl(
+                            playerVM = playerViewModel,
+                            musicUiState = uiState,
+                            onPlayPauseClicked = {
+                                playerViewModel.onEvent(PlayerEvent.PlayPause(uiState.isPlaying))
+                            },
+                            onExpand = { playerViewModel.setPlayerExpanded(true) }
+                        )
                     }
                 }
             }
@@ -331,7 +400,6 @@ fun ProfileScreen(
         )
     }
 }
-
 
 @Composable
 fun MonthYearSelector(

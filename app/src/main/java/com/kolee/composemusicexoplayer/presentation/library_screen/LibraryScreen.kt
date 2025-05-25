@@ -114,6 +114,9 @@ class MusicAdapter(
         val showEditDelete = music.isDownloaded
         holder.editButton?.visibility = if (showEditDelete) View.GONE else View.VISIBLE
         holder.deleteButton?.visibility = if (showEditDelete) View.GONE else View.VISIBLE
+        val showEditDelete = music.country != "LOCAL"
+        holder.editButton.visibility = if (showEditDelete) View.GONE else View.VISIBLE
+        holder.deleteButton.visibility = if (showEditDelete) View.GONE else View.VISIBLE
 
         val isPlaying = music.audioId == currentlyPlayingId
 
@@ -308,7 +311,6 @@ fun LibraryScreen(
     ) {
         val musicUiState by playerVM.uiState.collectAsState()
         val allSongs = musicUiState.musicList
-        val likedSongs = allSongs.filter { it.loved }
 
         var selectedTab by remember { mutableStateOf("All") }
         var searchQuery by remember { mutableStateOf("") }
@@ -324,10 +326,14 @@ fun LibraryScreen(
         val screenWidth = configuration.screenWidthDp.dp
 
         val userSongs = musicUiState.musicList.filter {
-            it.owner.equals(currentUserEmail, ignoreCase = true)
+            it.owner.any { owner ->
+                owner.equals(currentUserEmail, ignoreCase = true)
+            }
         }
 
-        val downloadSongs = musicUiState.musicList.filter {
+        val likedSongs = userSongs.filter { it.loved }
+
+        val downloadSongs = userSongs.filter {
             it.isDownloaded.equals(true)
         }
 

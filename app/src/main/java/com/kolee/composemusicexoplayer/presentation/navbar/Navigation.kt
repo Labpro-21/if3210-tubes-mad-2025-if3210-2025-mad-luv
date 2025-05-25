@@ -56,26 +56,21 @@ fun Navigation(
                 authViewModel = authViewModel,
                 networkSensing = networkSensing,
                 onTopArtistsClick = { topArtists ->
-                    // Simpan data ke PlayerViewModel untuk digunakan di TopArtistsDetailPage
                     playerViewModel.setTopArtistsForDetail(topArtists)
-                    // Navigate ke TopArtistsDetailPage
                     navController.navigate("top_artists_detail")
                 },
                 onTopSongsClick = { topSongs ->
-                    // Simpan data ke PlayerViewModel untuk digunakan di TopArtistsDetailPage
                     playerViewModel.setTopSongsForDetail(topSongs)
-                    // Navigate ke TopArtistsDetailPage
                     navController.navigate("top_songs_detail")
                 },
                 onTimeDetailClick = { timeDetail ->
-                    // Simpan data ke PlayerViewModel untuk digunakan di TopArtistsDetailPage
                     playerViewModel.setDailyListeningTimeForDetail(timeDetail)
-                    // Navigate ke TopArtistsDetailPage
                     navController.navigate("time_daily_detail")
                 },
                 onEditProfileClick = {
                     navController.navigate("edit_profile_detail")
                 },
+                navController = navController
             )
         }
         composable("top_artists_detail") {

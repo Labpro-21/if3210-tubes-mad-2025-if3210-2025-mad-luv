@@ -64,7 +64,7 @@ fun AddSongDrawer(
 
     LaunchedEffect(Unit) {
         coroutineScope.launch {
-            val userName = userPreferences.getUserName.first()
+            val userName = userPreferences.getUserEmail.first()
             currentUserId = userName ?: "1"
         }
     }
@@ -203,7 +203,7 @@ fun AddSongDrawer(
                                 audioPath = path,
                                 albumPath = imageUri.toString(),
                                 duration = duration,
-                                owner = currentUserId
+                                owner = listOf(currentUserId)
                             )
 
                             playerViewModel.onEvent(PlayerEvent.addMusic(music))

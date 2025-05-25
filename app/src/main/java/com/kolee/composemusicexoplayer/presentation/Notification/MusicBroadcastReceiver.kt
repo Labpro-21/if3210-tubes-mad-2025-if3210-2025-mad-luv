@@ -17,11 +17,9 @@ class MusicBroadcastReceiver : BroadcastReceiver() {
         when (action) {
             "PLAY" -> {
                 Log.d("MusicBroadcastReceiver", "Play button clicked")
-                // lakukan aksi play
             }
             "PAUSE" -> {
                 Log.d("MusicBroadcastReceiver", "Pause button clicked")
-                // lakukan aksi pause
             }
             else -> {
                 Log.d("MusicBroadcastReceiver", "Unknown action: $action")

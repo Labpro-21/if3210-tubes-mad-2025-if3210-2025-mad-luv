@@ -81,12 +81,14 @@ fun MusicScreen(
     val currentUserCountry by userPreferences.getUserCountry.collectAsState(initial = "GLOBAL")
     val currentUserEmail by userPreferences.getUserEmail.collectAsState(initial = "")
 
-    val globalSongs = musicUiState.musicList.filter { it.owner == "GLOBAL" }
+    val globalSongs = musicUiState.musicList.filter { it.country == "GLOBAL" }
     val countrySongs = musicUiState.musicList.filter {
         it.country.equals(currentUserCountry, ignoreCase = true)
     }
     val userSongs = musicUiState.musicList.filter {
-        it.owner.equals(currentUserEmail, ignoreCase = true)
+        it.owner.any { owner ->
+            owner.equals(currentUserEmail, ignoreCase = true)
+        }
     }
 
     NetworkSensingScreen(
@@ -421,50 +423,64 @@ private fun PortraitLayout(
                             }
                         }
                     }
-
-                    itemsIndexed(currentFullList) { index, music ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 1.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                    if (currentFullList.isEmpty()) {
+                        item {
                             Box(
                                 modifier = Modifier
-                                    .size(24.dp)
-                                    ,
+                                    .fillParentMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = "${index + 1}",
-                                    style = MaterialTheme.typography.subtitle2.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = when (index) {
-                                            0, 1, 2 -> Color.White
-                                            else -> MaterialTheme.colors.onSurface
-                                        }
-                                    )
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(1.dp))
-
-                            Box(modifier = Modifier.weight(1f)) {
-                                MusicItem(
-                                    music = music,
-                                    selected = music.audioId == musicUiState.currentPlayedMusic.audioId,
-                                    isMusicPlaying = musicUiState.isPlaying,
-                                    isHorizontal = false,
-                                    onClick = { playerVM.onEvent(PlayerEvent.Play(music)) },
+                                    text = "Tidak ada lagu yang tersedia",
+                                    style = MaterialTheme.typography.h6,
+                                    color = Color.White
                                 )
                             }
                         }
-                        Divider(color = Color.Gray.copy(alpha = 0.1f))
+                    } else {
+
+                        itemsIndexed(currentFullList) { index, music ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 1.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "${index + 1}",
+                                        style = MaterialTheme.typography.subtitle2.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = when (index) {
+                                                0, 1, 2 -> Color.White
+                                                else -> MaterialTheme.colors.onSurface
+                                            }
+                                        )
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(1.dp))
+
+                                Box(modifier = Modifier.weight(1f)) {
+                                    MusicItem(
+                                        music = music,
+                                        selected = music.audioId == musicUiState.currentPlayedMusic.audioId,
+                                        isMusicPlaying = musicUiState.isPlaying,
+                                        isHorizontal = false,
+                                        onClick = { playerVM.onEvent(PlayerEvent.Play(music)) },
+                                    )
+                                }
+                            }
+                            Divider(color = Color.Gray.copy(alpha = 0.1f))
+                        }
                     }
                 }
             }
 
-            // Loading indicator saat download
             if (isDownloadingGlobal || isDownloadingCountry) {
                 Box(
                     modifier = Modifier

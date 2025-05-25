@@ -190,7 +190,7 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
                         context.packageName + "/" + R.drawable.album_cover
             ).toString(),
             audioPath = RawResourceDataSource.buildRawResourceUri(R.raw.intro).toString(),
-            owner = userId
+            owner = listOf(userId)
         )
 
         val existing = musicRepository.getMusicById(100L)
@@ -202,13 +202,19 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
             Log.d("MusicDebug", "Updating default music for user: $userId")
             Log.d("MusicOwners", "Default music current owner: ${existing.owner}, updating to: $userId")
 
+            val updatedOwners = existing.owner.toMutableList().apply {
+                if (!contains(userId)) {
+                    add(userId)
+                }
+            }
+
             val updated = existing.copy(
                 title = defaultMusic.title,
                 artist = defaultMusic.artist,
                 duration = defaultMusic.duration,
                 albumPath = defaultMusic.albumPath,
                 audioPath = defaultMusic.audioPath,
-                owner = userId
+                owner = updatedOwners
             )
             musicRepository.updateMusic(updated)
         }
@@ -282,7 +288,7 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         if (music.audioId != MusicEntity.default.audioId) {
             _hasStopped.emit(false)
             _currentPlayedMusic.emit(music)
-            Log.d("MusicOwners", "Playing music: ID=${music.audioId}, Title=${music.title}, Owner=${music.owner}")
+            Log.d("MusicOwners", "Playing music: ID=${music.audioId}, Title=${music.title}, Owner=${music.owner}, Country = ${music.country}")
 
             playerHandler.post {
                 exoPlayer.setMediaItem(MediaItem.fromUri(music.audioPath.toUri()))
@@ -297,7 +303,7 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     }
 
     suspend fun updateMusic(music: MusicEntity) {
-        val updatedMusic = music.copy(owner = currentUserId.value)
+        val updatedMusic = music
         Log.d("MusicOwners", "Updating music: ID=${music.audioId}, Title=${music.title}")
         Log.d("MusicOwners", "  - Original owner: ${music.owner}, New owner: ${updatedMusic.owner}")
 
@@ -319,7 +325,7 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     }
 
     suspend fun updateMusicList(musicList: List<MusicEntity>) {
-        val filteredList = musicList.filter { it.owner == currentUserId.value }
+        val filteredList = musicList.filter { currentUserId.value in it.owner }
         Log.d("MusicOwners", "Updating music list - Total: ${musicList.size}, Filtered for user ${currentUserId.value}: ${filteredList.size}")
         _allMusics.emit(filteredList)
     }
@@ -377,7 +383,7 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     }
 
     suspend fun addMusic(music: MusicEntity) {
-        val musicWithOwner = music.copy(owner = currentUserId.value)
+        val musicWithOwner = music.copy(owner = music.owner + currentUserId.value)
         Log.d("MusicOwners", "Adding music: ID=${music.audioId}, Title=${music.title}")
         Log.d("MusicOwners", "  - Original owner: ${music.owner}, Set owner: ${musicWithOwner.owner}")
 
@@ -397,14 +403,14 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     }
 
     suspend fun addMusicAndRefresh(music: MusicEntity) {
-        val musicWithOwner = music.copy(owner = currentUserId.value)
+        val musicWithOwner = music.copy(owner = music.owner + currentUserId.value)
         Log.d("MusicOwners", "Adding music and refreshing: ID=${music.audioId}, Title=${music.title}, Owner set to: ${musicWithOwner.owner}")
 
         addMusic(musicWithOwner)
 
         val currentMusics = getAllMusic().first()
         val scannedMusics = MusicUtil.fetchMusicsFromDevice(context)
-            .map { it.copy(owner = currentUserId.value) } // Set owner for scanned music
+            .map { it.copy(owner = music.owner + currentUserId.value) } // Set owner for scanned music
 
         Log.d("MusicOwners", "Scanned ${scannedMusics.size} music files from device, setting owner to: ${currentUserId.value}")
 
@@ -417,7 +423,7 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
 
     suspend fun refreshMusicList() {
         val scannedMusics = MusicUtil.fetchMusicsFromDevice(context)
-            .map { it.copy(owner = currentUserId.value) }
+            .map { it.copy(owner = it.owner + currentUserId.value) }
 
         Log.d("MusicOwners", "Refreshing music list - Scanned ${scannedMusics.size} music files, setting owner to: ${currentUserId.value}")
         insertAllMusics(scannedMusics)
@@ -479,7 +485,7 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         val userId = currentUserId.value
         val userCountry = currentUserCountry.value
 
-        val filteredNewMusicList = newMusicList.map { it.copy(owner = userId) }
+        val filteredNewMusicList = newMusicList.map { it.copy(owner = it.owner + userId) }
 
         val downloadedMusic = musicRepository.getDownloadedMusic().first()
         Log.d("MusicOwners", "Downloaded musics for user: $userId\n" +
@@ -488,7 +494,7 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
                 }
         )
 
-        val currentUserMusic = allMusics.value.filter { it.owner == userId }
+        val currentUserMusic = allMusics.value.filter { userId in it.owner }
         val globalsongs = musicRepository.getTopGlobalSongs()
         val countrysongs = musicRepository.getTopSongsByCountry(userCountry)
 

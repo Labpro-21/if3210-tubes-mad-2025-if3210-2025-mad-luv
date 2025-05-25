@@ -41,9 +41,15 @@ class DownloadManager @Inject constructor(
                         }
                     }
 
+                    val updatedOwners = music.owner.toMutableList().apply {
+                        if (!contains(userPreferences.getUserEmail.first())) {
+                            userPreferences.getUserEmail.first()?.let { add(it) }
+                        }
+                    }
+
                     val downloadedMusic = music.copy(
                         audioPath = outputFile.absolutePath,
-                        owner = userPreferences.getUserEmail.first() ?: "unknown",
+                        owner = updatedOwners,
                         isDownloaded = true
                     )
 

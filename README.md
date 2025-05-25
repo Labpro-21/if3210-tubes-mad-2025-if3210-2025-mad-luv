@@ -10,6 +10,10 @@ Purritify is an Android music player application built with Jetpack Compose and 
 - Adding new songs to the collection
 - Album art and song metadata display
 - Favorite songs 
+- Top Charts and Offline Songs
+- Music Recommendation
+- Sound Capsule
+- Share song by QR and Link
 
 This application uses the MVVM (Model-View-ViewModel) architecture and leverages modern Android technologies such as Jetpack Compose, Kotlin Coroutines, and Room Database.
 
@@ -28,16 +32,22 @@ This application uses the MVVM (Model-View-ViewModel) architecture and leverages
 
 ## Screenshots
 
-<div style="display: flex; justify-content: center; flex-wrap: wrap;gap: 2rem;">
-    <img src="screenshot/1_login.jpg" style="max-width: 300px;">
-    <img src="screenshot/2_home.jpg" style="max-width: 300px;">
-    <img src="screenshot/3_library.jpg" style="max-width: 300px;">
-    <img src="screenshot/4_upload.jpg" style="max-width: 300px;">
-    <img src="screenshot/5_edit.jpg" style="max-width: 300px;">
-    <img src="screenshot/6_player.jpg" style="max-width: 300px;">
-    <img src="screenshot/7_player2.jpg" style="max-width: 300px;">
-    <img src="screenshot/8_profile.jpg" style="max-width: 300px;">
-</div>
+<p align="center">
+  <img src="screenshot/1_login.jpg" width="200"/>
+  <img src="screenshot/2_home.jpg" width="200"/>
+  <img src="screenshot/3_library.jpg" width="200"/>
+  <img src="screenshot/4_upload.jpg" width="200"/>
+  <img src="screenshot/5_edit.jpg" width="200"/>
+  <img src="screenshot/6_player.jpg" width="200"/>
+  <img src="screenshot/8_profile.jpg" width="200"/>
+  <img src="screenshot/10_chart.jpg" width="200"/>
+  <img src="screenshot/11_scanner.jpg" width="200"/>
+  <img src="screenshot/12_capsule.jpg" width="200"/>
+  <img src="screenshot/13_share.jpg" width="200"/>
+  <img src="screenshot/14_edit.jpg" width="200"/>
+  <img src="screenshot/7_player2.jpg" width="200"/>
+  <img src="screenshot/9_library.jpg" width="200"/>
+</p>
 
 
 ## Application Security
@@ -90,14 +100,14 @@ private fun decodeBase64(encoded: String): String {
 
 | NIM      | Full Name                 | Responsibilities                                                                                                                | Working Hours                                                                          |
 | -------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| 13522009 | Muhammad Yusuf Rafi | Library <br> Profile <br> Network Sensing | 10 hours <br> 10 hours <br> 10 hours  |
-| 13522025 | Debrina Veisha Rashika W   | Login and Logout <br> Music Player <br> Background Service <br> Likecd Songs | 10 hours <br> 10 hours <br> 5 hours <br> 5 hours  
-| 13522035 | Melati Anggraini       | Navbar <br> Add Songs <br> Home  | 10 hours <br> 10 hours <br> 10 hours |
+| 13522009 | Muhammad Yusuf Rafi | Library <br> Profile <br> Network Sensing <br> Edit Profile <br> Sound Capsule <br> Audio Routing | 10 hours <br> 10 hours <br> 10 hours <br> 10 hours <br> 10 hours <br> 10 hours|
+| 13522025 | Debrina Veisha Rashika W   | Login and Logout <br> Music Player <br> Background Service <br> Liked Songs <br> Online Songs <br> Download Songs <br> Recommendation| 10 hours <br> 10 hours <br> 5 hours <br> 5 hours <br> 10 hours <br> 10 hours <br> 10 hours 
+| 13522035 | Melati Anggraini       | Navbar <br> Add Songs <br> Home <br> Share Songs via url <br> Share Songs via QR <br> Notification | 10 hours <br> 10 hours <br> 10 hours <br> 10 hours <br> 10 hours <br> 10 hours |
 
 # Total Working Hours
 
 | NIM      | Full Name                 | Total Working Hours |
 | -------- | ------------------------- | ------------------- |
-| 13522009 | Muhammad Yusuf Rafi       | 30 hours
-| 13522025 | Debrina Veisha Rashika W  | 30 hours            |
-| 13522035 | Melati Anggraini           | 30 hours            |
+| 13522009 | Muhammad Yusuf Rafi       | 60 hours
+| 13522025 | Debrina Veisha Rashika W  | 60 hours            |
+| 13522035 | Melati Anggraini          | 60 hours            |

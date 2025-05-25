@@ -37,7 +37,6 @@ class NotificationHelper @Inject constructor(
     private val notificationId = 1
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    // Main activity intent for when notification is tapped - DIPERBAIKI
     private val contentIntent: PendingIntent by lazy {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
@@ -51,7 +50,7 @@ class NotificationHelper @Inject constructor(
         )
     }
 
-    // Stop/dismiss intent - DIPERBAIKI untuk stop music
+
     private val stopIntent: PendingIntent by lazy {
         val intent = Intent(context, MusicBroadcastReceiver::class.java).apply {
             putExtra("action", "STOP")
@@ -75,7 +74,6 @@ class NotificationHelper @Inject constructor(
             android.util.Log.d("NotificationHelper", "Building notification for: ${song.title}")
             android.util.Log.d("NotificationHelper", "Album path: ${song.albumPath}")
 
-            // Load and process album art synchronously for immediate notification
             val albumArt = loadAlbumArtSync(song.albumPath)
             val roundedAlbumArt = createRoundedBitmap(albumArt)
 
@@ -84,13 +82,13 @@ class NotificationHelper @Inject constructor(
                 .setLargeIcon(roundedAlbumArt)
                 .setContentTitle(song.title ?: "Unknown Title")
                 .setContentText(song.artist ?: "Unknown Artist")
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // DIPERBAIKI untuk lock screen
-                .setContentIntent(contentIntent) // Intent ke MainActivity
-                .setDeleteIntent(stopIntent) // Intent untuk close notification
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setContentIntent(contentIntent)
+                .setDeleteIntent(stopIntent)
                 .setAutoCancel(false)
-                .setColor(0xFF1DB954.toInt()) // Spotify green
+                .setColor(0xFF1DB954.toInt())
                 .setColorized(false)
-                // Media controls
+
                 .addAction(createNotificationAction(
                     R.drawable.ic_previous_filled_rounded,
                     "Previous",
@@ -111,33 +109,32 @@ class NotificationHelper @Inject constructor(
                     "Stop",
                     "STOP"
                 ))
-                // Progress bar
+
                 .apply {
                     if (duration > 0) {
                         setProgress(duration.toInt(), progress.toInt(), false)
                     }
                 }
-                // Media style - DIPERBAIKI untuk lock screen
+
                 .setStyle(
                     MediaStyle()
-                        .setShowActionsInCompactView(0, 1, 2) // Show prev, play/pause, next in compact view
-                        .setMediaSession(null) // Set null for now, bisa ditambahkan MediaSession nanti
+                        .setShowActionsInCompactView(0, 1, 2)
+                        .setMediaSession(null)
                         .setShowCancelButton(true)
                         .setCancelButtonIntent(stopIntent)
                 )
-                .setPriority(NotificationCompat.PRIORITY_HIGH) // DIPERBAIKI dari LOW ke DEFAULT
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setOnlyAlertOnce(true)
-                .setOngoing(isPlaying) // Ongoing ketika sedang play
-                .setAutoCancel(false) // Jangan auto cancel
+                .setOngoing(isPlaying)
+                .setAutoCancel(false)
                 .setCategory(NotificationCompat.CATEGORY_TRANSPORT)
                 .setShowWhen(false)
-                // TAMBAHAN untuk lock screen
                 .setWhen(System.currentTimeMillis())
                 .setUsesChronometer(false)
                 .build()
         } catch (e: Exception) {
             android.util.Log.e("NotificationHelper", "Error building notification", e)
-            // Return a basic notification as fallback
+
             return createFallbackNotification(song, isPlaying)
         }
     }
@@ -178,20 +175,19 @@ class NotificationHelper @Inject constructor(
             var originalBitmap: Bitmap? = null
 
             when {
-                // For URLs, check cache first, then load async if needed
                 albumPath.startsWith("http://") || albumPath.startsWith("https://") -> {
                     originalBitmap = getBitmapFromCache(albumPath)
                     if (originalBitmap == null) {
-                        // Start async loading for next time
+
                         loadBitmapFromUrlAsync(albumPath)
                         return getDefaultAlbumArt()
                     }
                 }
-                // Android Resource URI
+
                 albumPath.startsWith("android.resource://") -> {
                     originalBitmap = loadBitmapFromResourceUri(albumPath)
                 }
-                // Content URI
+
                 albumPath.startsWith("content://") -> {
                     try {
                         context.contentResolver.openInputStream(android.net.Uri.parse(albumPath))?.use { inputStream ->
@@ -201,7 +197,7 @@ class NotificationHelper @Inject constructor(
                         android.util.Log.w("NotificationHelper", "Failed to load from content URI: ${e.message}")
                     }
                 }
-                // Asset path
+
                 albumPath.startsWith("android_asset/") -> {
                     try {
                         val assetPath = albumPath.removePrefix("android_asset/")
@@ -212,7 +208,7 @@ class NotificationHelper @Inject constructor(
                         android.util.Log.w("NotificationHelper", "Failed to load from assets: ${e.message}")
                     }
                 }
-                // Local file path
+
                 else -> {
                     originalBitmap = BitmapFactory.decodeFile(albumPath)
                 }
@@ -220,7 +216,7 @@ class NotificationHelper @Inject constructor(
 
             if (originalBitmap != null && !originalBitmap!!.isRecycled) {
                 android.util.Log.d("NotificationHelper", "Album art loaded successfully: ${originalBitmap!!.width}x${originalBitmap!!.height}")
-                // Scale to appropriate size for notification
+
                 val size = (256 * context.resources.displayMetrics.density).toInt()
                 return Bitmap.createScaledBitmap(originalBitmap!!, size, size, true).also {
                     if (originalBitmap != it) originalBitmap!!.recycle()
@@ -282,7 +278,6 @@ class NotificationHelper @Inject constructor(
         }
     }
 
-    // Thread-safe cache using WeakReference to prevent memory leaks
     companion object {
         private val bitmapCache = ConcurrentHashMap<String, WeakReference<Bitmap>>()
         private const val MAX_CACHE_SIZE = 20
@@ -299,10 +294,8 @@ class NotificationHelper @Inject constructor(
     }
 
     private fun saveBitmapToCache(url: String, bitmap: Bitmap) {
-        // Clean up any recycled bitmaps
         cleanupCache()
 
-        // Simple cache management - remove oldest if cache is full
         if (bitmapCache.size >= MAX_CACHE_SIZE) {
             val firstKey = bitmapCache.keys.firstOrNull()
             if (firstKey != null) {
@@ -342,7 +335,6 @@ class NotificationHelper @Inject constructor(
         }
         canvas.drawRect(0f, 0f, size.toFloat(), size.toFloat(), paint)
 
-        // Draw music note icon in center
         paint.color = 0xFF1DB954.toInt()
         val noteSize = size * 0.4f
         val centerX = size / 2f
@@ -407,7 +399,6 @@ class NotificationHelper @Inject constructor(
         try {
             createNotificationChannel()
 
-            // Load album art asynchronously and update notification when ready
             coroutineScope.launch {
                 val albumArt = if (!song.albumPath.isNullOrEmpty() &&
                     (song.albumPath.startsWith("http://") || song.albumPath.startsWith("https://"))) {
@@ -510,11 +501,11 @@ class NotificationHelper @Inject constructor(
             val channel = NotificationChannel(
                 channelId,
                 "Music Playback",
-                NotificationManager.IMPORTANCE_LOW // Keep LOW untuk tidak mengganggu user
+                NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Controls for music playback"
                 setShowBadge(false)
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC // DIPERBAIKI untuk lock screen
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 enableLights(false)
                 enableVibration(false)
                 setSound(null, null)

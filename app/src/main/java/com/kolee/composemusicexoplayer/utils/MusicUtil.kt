@@ -49,7 +49,7 @@ object MusicUtil {
                     duration = duration,
                     albumPath = albumPath.toString(),
                     audioPath = musicPath.toString(),
-                    owner = "1"
+                    owner = listOf("1")
                 )
 
                 val isValid = (!isTracksSmallerThan100KBSkipped || size / 1024 > 100) &&

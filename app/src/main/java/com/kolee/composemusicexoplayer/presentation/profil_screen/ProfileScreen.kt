@@ -102,10 +102,31 @@ fun ProfileScreen(
         playerViewModel.getMonthAnalyticsForMonth(selectedMonth, selectedYear)
     }
 
-    val allSongs by remember { derivedStateOf { uiState.musicList.size } }
-    val likedSongs by remember { derivedStateOf { playerViewModel.getLoved().size } }
-    val listenedSongs by remember { derivedStateOf { playerViewModel.getListenedSongs().size } }
+    val currentUserEmail = profileState?.email ?: ""
 
+    val allSongs by remember(uiState.musicList, currentUserEmail) {
+        derivedStateOf {
+            uiState.musicList
+                .filter { music -> music.owner.any { it.equals(currentUserEmail, ignoreCase = true) } }
+                .size
+        }
+    }
+
+    val likedSongs by remember(playerViewModel.getLoved(), currentUserEmail) {
+        derivedStateOf {
+            playerViewModel.getLoved()
+                .filter { music -> music.owner.any { it.equals(currentUserEmail, ignoreCase = true) } }
+                .size
+        }
+    }
+
+    val listenedSongs by remember(playerViewModel.getListenedSongs(), currentUserEmail) {
+        derivedStateOf {
+            playerViewModel.getListenedSongs()
+                .filter { music -> music.owner.any { it.equals(currentUserEmail, ignoreCase = true) } }
+                .size
+        }
+    }
     NetworkSensingScreen(
         networkSensing = networkSensing,
         showFallbackPage = !isConnected && profileState == null

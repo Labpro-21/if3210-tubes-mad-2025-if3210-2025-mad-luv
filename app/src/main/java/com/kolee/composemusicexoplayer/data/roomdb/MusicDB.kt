@@ -4,12 +4,14 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 
 @Database(
     entities = [MusicEntity::class, ListeningSessionEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
+@TypeConverters(OwnersConverter::class)
 abstract class MusicDB : RoomDatabase() {
     abstract fun musicDao(): MusicDao
     abstract fun listeningSessionDao(): ListeningSessionDao

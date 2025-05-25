@@ -15,7 +15,7 @@ data class MusicEntity(
     val audioPath: String,
     val lastPlayedAt: Long = 0L,
     val loved: Boolean = false,
-    val owner: String,
+    val owner: List<String> = listOf("1"),
     val playedAt: Long = System.currentTimeMillis(),
     val isDownloaded: Boolean = false,
     val country: String = "LOCAL"
@@ -28,7 +28,7 @@ data class MusicEntity(
             duration = 0L,
             albumPath = "",
             audioPath = "",
-            owner = "1",
+            owner = listOf("1"),
         )
     }
 }

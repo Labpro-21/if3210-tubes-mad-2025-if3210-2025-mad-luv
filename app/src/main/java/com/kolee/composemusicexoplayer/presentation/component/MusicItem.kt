@@ -37,9 +37,8 @@ fun MusicItem(
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
-    
-    // Only show share button for server songs (not local songs)
-    val isServerSong = music.owner != "LOCAL" && music.audioPath.startsWith("http")
+
+    val isServerSong = music.country != "LOCAL"
 
     if (isHorizontal) {
         Card(

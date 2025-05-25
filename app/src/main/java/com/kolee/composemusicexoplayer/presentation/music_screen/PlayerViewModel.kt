@@ -445,7 +445,7 @@ class PlayerViewModel @Inject constructor(
 
             val likedSongs = getLoved()
             val recentlyPlayed = getRecentlyPlayed()
-            val allSongs = uiState.value.musicList
+            val allSongs = uiState.value.musicList.distinctBy { it.audioId }
 
             val dailyPlaylist = generateDailyPlaylist(likedSongs, recentlyPlayed, allSongs)
             val topMixes = generateTopMixes(likedSongs)

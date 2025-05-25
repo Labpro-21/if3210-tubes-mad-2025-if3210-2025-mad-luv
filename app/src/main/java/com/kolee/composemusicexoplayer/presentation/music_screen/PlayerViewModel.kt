@@ -2,6 +2,7 @@ package com.kolee.composemusicexoplayer.presentation.music_screen
 
 import AudioDeviceManager
 import android.annotation.SuppressLint
+import android.app.NotificationManager
 import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
@@ -9,6 +10,7 @@ import androidx.compose.runtime.State
 import androidx.lifecycle.viewModelScope
 import com.kolee.composemusicexoplayer.data.roomdb.MusicEntity
 import com.kolee.composemusicexoplayer.data.roomdb.MusicRepository
+import com.kolee.composemusicexoplayer.presentation.Notification.NotificationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -23,7 +25,8 @@ import javax.inject.Inject
 class PlayerViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val environment: PlayerEnvironment,
-    val musicRepository: MusicRepository
+    val musicRepository: MusicRepository,
+    private val notificationHelper: NotificationHelper
 ) : StatefulViewModel<MusicUiState>(MusicUiState()) {
 
     data class RecommendationState(
@@ -43,9 +46,11 @@ class PlayerViewModel @Inject constructor(
     private val _currentDevice = MutableStateFlow<AudioDeviceManager.AudioDevice?>(null)
     val currentDeviceFlow: StateFlow<AudioDeviceManager.AudioDevice?> = _currentDevice.asStateFlow()
 
+    private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
     init {
-        // Initialize audio devices
         initializeAudioDevices()
+        notificationHelper.createNotificationChannel()
 
         viewModelScope.launch {
             environment.getAllMusic().collect { musics ->
@@ -57,6 +62,11 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             environment.getCurrentPlayedMusic().collect { music ->
                 updateState { copy(currentPlayedMusic = music) }
+                if (music != MusicEntity.default) {
+                    showNotification(music, uiState.value.isPlaying)
+                } else {
+                    cancelNotification()
+                }
             }
         }
 
@@ -117,6 +127,8 @@ class PlayerViewModel @Inject constructor(
                     environment.play(updatedMusic)
                     environment.setShowButtonMusicPlayer(true)
 
+                    showNotification(updatedMusic, true)
+
                     val updatedList = uiState.value.musicList.map {
                         if (it.audioId == updatedMusic.audioId) updatedMusic else it
                     }
@@ -126,17 +138,28 @@ class PlayerViewModel @Inject constructor(
 
             is PlayerEvent.PlayPause -> {
                 viewModelScope.launch {
-                    if (event.isPlaying) environment.pause()
-                    else environment.resume()
+                    if (event.isPlaying) {
+                        environment.pause()
+                        showNotification(uiState.value.currentPlayedMusic, false)
+                    } else {
+                        environment.resume()
+                        showNotification(uiState.value.currentPlayedMusic, true)
+                    }
                 }
             }
 
             is PlayerEvent.Next -> {
-                viewModelScope.launch { environment.next() }
+                viewModelScope.launch {
+                    environment.next()
+                    showNotification(uiState.value.currentPlayedMusic, true)
+                }
             }
 
             is PlayerEvent.Previous -> {
-                viewModelScope.launch { environment.previous() }
+                viewModelScope.launch {
+                    environment.previous()
+                    showNotification(uiState.value.currentPlayedMusic, true)
+                }
             }
 
             is PlayerEvent.SetShowBottomPlayer -> {
@@ -383,6 +406,7 @@ class PlayerViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         audioDeviceManager.cleanup()
+        cancelNotification()
     }
 
     fun fetchAndPlaySharedSong(songId: String) {
@@ -408,5 +432,13 @@ class PlayerViewModel @Inject constructor(
                 Log.e("PlayerViewModel", "Failed to fetch and play shared song", e)
             }
         }
+    }
+
+    fun showNotification(song: MusicEntity, isPlaying: Boolean) {
+        notificationHelper.showNotification(song, isPlaying)
+    }
+
+    fun cancelNotification() {
+        notificationHelper.cancelNotification()
     }
 }

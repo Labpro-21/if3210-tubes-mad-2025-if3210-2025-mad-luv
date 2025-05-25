@@ -91,14 +91,21 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
                                     else -> allMusics.value[0]
                                 }
                             }
-                            scope.launch { play(nextSong) }
+                            scope.launch {
+                                play(nextSong)
+                                // Notification will be updated automatically by MusicController
+                            }
                         }
                         PlaybackMode.REPEAT_ONE -> {
-                            scope.launch { play(currentPlayedMusic.value) }
+                            scope.launch {
+                                play(currentPlayedMusic.value)
+                                // Notification will be updated automatically by MusicController
+                            }
                         }
                         PlaybackMode.REPEAT_OFF -> {
                             this@apply.stop()
                             _currentPlayedMusic.tryEmit(MusicEntity.default)
+                            _isPlaying.tryEmit(false)
                         }
                     }
                 }
@@ -276,6 +283,9 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
                 exoPlayer.play()
                 startUpdatingProgress()
             }
+
+            // Ensure the bottom player is shown
+            setShowButtonMusicPlayer(true)
         }
     }
 
@@ -341,7 +351,10 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     }
 
     suspend fun pause() {
-        playerHandler.post { exoPlayer.pause() }
+        playerHandler.post {
+            exoPlayer.pause()
+        }
+        // The _isPlaying state will be updated by the ExoPlayer listener
         startUpdatingProgress()
     }
 
@@ -349,7 +362,10 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         if (hasStopped.value && currentPlayedMusic.value != MusicEntity.default) {
             play(currentPlayedMusic.value)
         } else {
-            playerHandler.post { exoPlayer.play() }
+            playerHandler.post {
+                exoPlayer.play()
+            }
+            // The _isPlaying state will be updated by the ExoPlayer listener
         }
     }
 
@@ -361,6 +377,16 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         musicRepository.insertMusics(musicWithOwner)
 
         reloadUserMusic()
+    }
+
+    suspend fun stop() {
+        playerHandler.post {
+            exoPlayer.stop()
+            exoPlayer.clearMediaItems()
+        }
+        _currentPlayedMusic.emit(MusicEntity.default)
+        _isPlaying.emit(false)
+        _hasStopped.emit(true)
     }
 
     suspend fun addMusicAndRefresh(music: MusicEntity) {

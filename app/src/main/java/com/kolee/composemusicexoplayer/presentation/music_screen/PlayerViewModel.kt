@@ -1,10 +1,11 @@
 package com.kolee.composemusicexoplayer.presentation.music_screen
 
-import AudioDeviceManager
 import android.annotation.SuppressLint
 import android.app.NotificationManager
 import android.content.Context
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.State
 import androidx.lifecycle.viewModelScope
@@ -15,6 +16,7 @@ import com.kolee.composemusicexoplayer.data.model.SongStats
 import com.kolee.composemusicexoplayer.data.roomdb.MusicEntity
 import com.kolee.composemusicexoplayer.data.roomdb.MusicRepository
 import com.kolee.composemusicexoplayer.presentation.Notification.NotificationHelper
+import com.kolee.composemusicexoplayer.presentation.audio.AudioDeviceManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -27,6 +29,7 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
+@RequiresApi(Build.VERSION_CODES.S)
 @HiltViewModel
 @SuppressLint("StaticFieldLeak")
 class PlayerViewModel @Inject constructor(
@@ -48,6 +51,12 @@ class PlayerViewModel @Inject constructor(
 
     private val _dailyListeningTimeForDetail = MutableStateFlow<List<DailyListeningTime>>(emptyList())
     val dailyListeningTimeForDetail = _dailyListeningTimeForDetail.asStateFlow()
+
+    private val _isDeviceChanging = MutableStateFlow(false)
+    val isDeviceChanging: StateFlow<Boolean> = _isDeviceChanging.asStateFlow()
+
+    private val _deviceChangeError = MutableStateFlow<String?>(null)
+    val deviceChangeError: StateFlow<String?> = _deviceChangeError.asStateFlow()
 
     fun setTopArtistsForDetail(artists: List<ArtistStats>) {
         _topArtistsForDetail.value = artists
@@ -74,6 +83,7 @@ class PlayerViewModel @Inject constructor(
     private val _recommendationState = mutableStateOf(RecommendationState())
     val recommendationState: State<RecommendationState> = _recommendationState
 
+    @RequiresApi(Build.VERSION_CODES.S)
     private val audioDeviceManager = AudioDeviceManager(context)
 
     private val _availableDevices = MutableStateFlow<List<AudioDeviceManager.AudioDevice>>(emptyList())
@@ -160,6 +170,7 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     private fun initializeAudioDevices() {
         viewModelScope.launch {
             try {
@@ -548,16 +559,40 @@ class PlayerViewModel @Inject constructor(
             .filter { (it.lastPlayedAt ?: 0) > 0 }
     }
 
+    @RequiresApi(Build.VERSION_CODES.S)
     fun selectAudioDevice(device: AudioDeviceManager.AudioDevice) {
         viewModelScope.launch {
+            _isDeviceChanging.value = true
             try {
-                audioDeviceManager.selectDevice(device)
-                _currentDevice.value = device
-                Log.d("PlayerViewModel", "Audio device selected: ${device.name}")
+               
+                environment.pause()
+
+                delay(50)
+
+                val success = audioDeviceManager.selectDevice(device)
+
+                if (success) {
+                    environment.setAudioDevice(device)
+
+                    delay(100)
+
+                    _currentDevice.value = device
+                    environment.resume()
+                    Log.d("AudioSwitch", "Berhasil ganti perangkat")
+                } else {
+                    _deviceChangeError.value = "Gagal mengubah ke ${device.name}"
+                }
             } catch (e: Exception) {
-                Log.e("PlayerViewModel", "Failed to select audio device", e)
+                _deviceChangeError.value = "Error: ${e.localizedMessage}"
+                Log.e("AudioSwitch", "Gagal ganti perangkat", e)
+            } finally {
+                _isDeviceChanging.value = false
             }
         }
+    }
+
+    fun clearDeviceError() {
+        _deviceChangeError.value = null
     }
 
     fun refreshAudioDevices() {

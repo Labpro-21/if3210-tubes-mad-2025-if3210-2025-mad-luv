@@ -45,6 +45,7 @@ import com.kolee.composemusicexoplayer.data.network.NetworkSensing
 import com.kolee.composemusicexoplayer.data.profile.ProfileViewModel
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 import com.kolee.composemusicexoplayer.presentation.component.NetworkSensingScreen
+import com.kolee.composemusicexoplayer.presentation.profile_screen.EditProfileScreen
 import com.kolee.composemusicexoplayer.utils.AnalyticsExporter
 import com.kolee.composemusicexoplayer.utils.ExportFormat
 import kotlinx.coroutines.launch
@@ -59,7 +60,8 @@ fun ProfileScreen(
     networkSensing: NetworkSensing,
     onTopArtistsClick: (List<ArtistStats>) -> Unit = {},
     onTopSongsClick: (List<SongStats>) -> Unit = {},
-    onTimeDetailClick: (List<DailyListeningTime>) -> Unit = {}
+    onTimeDetailClick: (List<DailyListeningTime>) -> Unit = {},
+    onEditProfileClick: () -> Unit = {}
 ) {
     val isConnected by networkSensing.isConnected.collectAsState(initial = true)
     val profileState by viewModel.profile.collectAsState()
@@ -159,13 +161,13 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text(text = profile.username, fontSize = 20.sp, color = Color.White)
-                Text(text = profile.location, color = Color.LightGray)
+                profile.username?.let { Text(text = it, fontSize = 20.sp, color = Color.White) }
+                profile.location?.let { Text(text = it, color = Color.LightGray) }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
-                    onClick = { /* TODO: Edit Profile */ },
+                    onClick = onEditProfileClick, // Langsung panggil callback
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color.DarkGray)
                 ) {
                     Text(text = "Edit Profile", color = Color.White)
@@ -314,11 +316,13 @@ fun ProfileScreen(
                 monthlyAnalytics?.let { analytics ->
                     profileState?.let { profile ->
                         coroutineScope.launch {
-                            analyticsExporter.exportAnalytics(
-                                analytics = analytics,
-                                username = profile.username,
-                                format = format
-                            )
+                            profile.username?.let {
+                                analyticsExporter.exportAnalytics(
+                                    analytics = analytics,
+                                    username = it,
+                                    format = format
+                                )
+                            }
                         }
                     }
                 }
@@ -554,7 +558,8 @@ fun TimeListenedCard(
             modifier = Modifier.padding(16.dp)
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
                     text = "Time listened",
@@ -563,7 +568,7 @@ fun TimeListenedCard(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 IconButton(
-                    onClick = onTimeDetailClick, // Navigate to time detail page
+                    onClick = onTimeDetailClick,
                     modifier = Modifier.size(16.dp)
                 ) {
                     Icon(

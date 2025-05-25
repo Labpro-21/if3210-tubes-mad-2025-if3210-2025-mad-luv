@@ -20,6 +20,7 @@ import com.kolee.composemusicexoplayer.data.profile.ProfileViewModel
 import com.kolee.composemusicexoplayer.presentation.MusicPlayerSheet.MusicPlayerSheet
 import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
 import com.kolee.composemusicexoplayer.presentation.online_song.OnlineSongsViewModel
+import com.kolee.composemusicexoplayer.presentation.profile_screen.EditProfileScreen
 import com.kolee.composemusicexoplayer.presentation.soundcapsule_screen.TimeDetailPage
 import com.kolee.composemusicexoplayer.presentation.soundcapsule_screen.TopSongsDetailPage
 
@@ -64,6 +65,9 @@ fun Navigation(
                     // Navigate ke TopArtistsDetailPage
                     navController.navigate("time_daily_detail")
                 },
+                onEditProfileClick = {
+                    navController.navigate("edit_profile_detail")
+                },
             )
         }
         composable("top_artists_detail") {
@@ -88,6 +92,14 @@ fun Navigation(
             val timeDetail by playerViewModel.dailyListeningTimeForDetail.collectAsState()
             TimeDetailPage(
                 dailyStats = timeDetail,
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable("edit_profile_detail") {
+            EditProfileScreen(
+                profileViewModel = profileViewModel,
                 onBackClick = {
                     navController.popBackStack()
                 }

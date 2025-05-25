@@ -68,7 +68,11 @@ class AuthViewModel(private val context: Context) : ViewModel() {
                                 val profile = response.body()
                                 Log.d("Profile", "Success: ${profile?.toString() ?: "null body"}")
                                 if (profile != null) {
-                                    userPreferences.saveUserInfo(name, email, profile.location)
+                                    profile.location?.let { it1 ->
+                                        userPreferences.saveUserInfo(name, email,
+                                            it1
+                                        )
+                                    }
                                 }
                             } else {
                                 Log.e("Profile", "Error: ${response.code()} - ${response.errorBody()?.string()}")

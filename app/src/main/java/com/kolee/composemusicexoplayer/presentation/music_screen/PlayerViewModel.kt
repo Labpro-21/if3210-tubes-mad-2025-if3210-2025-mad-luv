@@ -494,9 +494,7 @@ class PlayerViewModel @Inject constructor(
 
     suspend fun getMonthAnalyticsForMonth(month: Int, year: Int) {
         try {
-//            _monthlyAnalytics.value = null
             delay(100)
-            // PERBAIKAN: Format month ke 1-based (month + 1) karena Calendar.MONTH menggunakan 0-based indexing
             val monthString = String.format("%04d-%02d", year, month + 1)
             println("DEBUG: Fetching analytics for monthString: $monthString") // Debug log
             val analytics = musicRepository.getMonthlyAnalytics(monthString)

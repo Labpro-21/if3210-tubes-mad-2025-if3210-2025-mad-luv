@@ -197,7 +197,7 @@ fun MusicItem(
         }
     }
 }
-private fun showShareOptions(context: Context, music: MusicEntity) {
+fun showShareOptions(context: Context, music: MusicEntity) {
     val builder = AlertDialog.Builder(context, R.style.CustomAlertDialog)
     builder.setTitle("Share Song")
 

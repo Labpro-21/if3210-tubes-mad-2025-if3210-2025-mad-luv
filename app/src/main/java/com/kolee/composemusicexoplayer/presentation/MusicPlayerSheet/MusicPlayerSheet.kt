@@ -77,8 +77,9 @@ fun MusicPlayerSheet(
 
             // Share button
             ShareButton(
-                songId = musicUiState.currentPlayedMusic.audioId,
+                music = musicUiState.currentPlayedMusic,
                 modifier = Modifier
+                    .zIndex(1f)
             )
         }
 

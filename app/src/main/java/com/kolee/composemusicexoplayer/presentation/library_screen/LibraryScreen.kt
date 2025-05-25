@@ -111,12 +111,9 @@ class MusicAdapter(
             .diskCacheStrategy(DiskCacheStrategy.NONE)
             .into(holder.imageCover)
 
-        val showEditDelete = music.isDownloaded
-        holder.editButton?.visibility = if (showEditDelete) View.GONE else View.VISIBLE
-        holder.deleteButton?.visibility = if (showEditDelete) View.GONE else View.VISIBLE
         val showEditDelete = music.country != "LOCAL"
-        holder.editButton.visibility = if (showEditDelete) View.GONE else View.VISIBLE
-        holder.deleteButton.visibility = if (showEditDelete) View.GONE else View.VISIBLE
+        holder.editButton?.visibility ?: if (showEditDelete) View.GONE else View.VISIBLE
+        holder.deleteButton?.visibility ?:  if (showEditDelete) View.GONE else View.VISIBLE
 
         val isPlaying = music.audioId == currentlyPlayingId
 
@@ -331,7 +328,9 @@ fun LibraryScreen(
             }
         }
 
-        val likedSongs = userSongs.filter { it.loved }
+        val likedSongs = musicUiState.musicList.filter { music ->
+            music.loved && music.owner.any { it.equals(currentUserEmail, ignoreCase = true) }
+        }
 
         val downloadSongs = userSongs.filter {
             it.isDownloaded.equals(true)

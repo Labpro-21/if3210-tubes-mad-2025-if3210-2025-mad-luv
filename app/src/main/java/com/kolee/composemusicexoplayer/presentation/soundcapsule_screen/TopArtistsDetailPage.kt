@@ -37,6 +37,10 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.kolee.composemusicexoplayer.data.model.ArtistStats
 import com.kolee.composemusicexoplayer.data.model.SongStats
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import androidx.compose.runtime.remember as remember1
 
 
 @Composable
@@ -45,6 +49,11 @@ fun TopArtistsDetailPage(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val monthYear = remember1(key1 = topArtists) {
+            SimpleDateFormat("MMMM yyyy", Locale.getDefault())
+                .format(Date())
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -84,6 +93,14 @@ fun TopArtistsDetailPage(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
+            Text(
+                text = monthYear,
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = buildAnnotatedString {
                     append("You played ")

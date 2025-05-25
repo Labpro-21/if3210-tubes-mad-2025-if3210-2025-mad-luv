@@ -6,12 +6,13 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [MusicEntity::class],
-    version = 5,
+    entities = [MusicEntity::class, ListeningSessionEntity::class],
+    version = 4,
     exportSchema = false
 )
 abstract class MusicDB : RoomDatabase() {
     abstract fun musicDao(): MusicDao
+    abstract fun listeningSessionDao(): ListeningSessionDao
 
     companion object {
         @Volatile

@@ -126,12 +126,6 @@ class MainActivity : ComponentActivity() {
 
                             }
 
-                            DisposableEffect(Unit) {
-                                onDispose {
-                                    unregisterReceiver(notificationReceiver.value)
-                                }
-                            }
-
                             ModalBottomSheetLayout(bottomSheetNavigator = bottomSheetNavigator) {
                                 val scaffoldContent: @Composable (PaddingValues) -> Unit = { innerPadding ->
                                     if (isPortrait) {

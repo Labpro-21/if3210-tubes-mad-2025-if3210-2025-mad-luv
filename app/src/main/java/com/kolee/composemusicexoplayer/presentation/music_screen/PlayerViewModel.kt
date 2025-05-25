@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.State
 import androidx.lifecycle.viewModelScope
@@ -29,7 +28,6 @@ import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
-@RequiresApi(Build.VERSION_CODES.S)
 @HiltViewModel
 @SuppressLint("StaticFieldLeak")
 class PlayerViewModel @Inject constructor(
@@ -83,8 +81,12 @@ class PlayerViewModel @Inject constructor(
     private val _recommendationState = mutableStateOf(RecommendationState())
     val recommendationState: State<RecommendationState> = _recommendationState
 
-    @RequiresApi(Build.VERSION_CODES.S)
-    private val audioDeviceManager = AudioDeviceManager(context)
+    // Audio device manager - dengan null safety untuk Android < S
+    private val audioDeviceManager: AudioDeviceManager? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        AudioDeviceManager(context)
+    } else {
+        null
+    }
 
     private val _availableDevices = MutableStateFlow<List<AudioDeviceManager.AudioDevice>>(emptyList())
     val availableDevicesFlow: StateFlow<List<AudioDeviceManager.AudioDevice>> = _availableDevices.asStateFlow()
@@ -95,7 +97,10 @@ class PlayerViewModel @Inject constructor(
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     init {
-        initializeAudioDevices()
+        // Initialize audio devices only if supported
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            initializeAudioDevices()
+        }
 
         viewModelScope.launch {
             environment.getAllMusic().collect { musics ->
@@ -170,8 +175,12 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.S)
     private fun initializeAudioDevices() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || audioDeviceManager == null) {
+            Log.w("PlayerViewModel", "Audio device management not supported on this Android version")
+            return
+        }
+
         viewModelScope.launch {
             try {
                 // Get available devices from AudioDeviceManager
@@ -243,7 +252,6 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-
     private suspend fun loadCurrentMonthAnalytics() {
         try {
             // PERBAIKAN: Gunakan format yang sama
@@ -260,7 +268,6 @@ class PlayerViewModel @Inject constructor(
             _monthlyAnalytics.value = null
         }
     }
-
 
     fun onEvent(event: PlayerEvent) {
         when (event) {
@@ -291,7 +298,7 @@ class PlayerViewModel @Inject constructor(
                         // Pausing - record current session
                         recordCurrentSession()
                         environment.pause()
-                       showNotification(uiState.value.currentPlayedMusic, false)
+                        showNotification(uiState.value.currentPlayedMusic, false)
                     } else {
                         // Resuming - start new session
                         currentSessionStartTime = System.currentTimeMillis()
@@ -304,9 +311,9 @@ class PlayerViewModel @Inject constructor(
             is PlayerEvent.Next -> {
                 viewModelScope.launch {
                     recordCurrentSession()
-                   
+
                     environment.next()
-               
+
                     showNotification(uiState.value.currentPlayedMusic, true)
                 }
             }
@@ -314,9 +321,9 @@ class PlayerViewModel @Inject constructor(
             is PlayerEvent.Previous -> {
                 viewModelScope.launch {
                     recordCurrentSession()
-                   
+
                     environment.previous()
-               
+
                     showNotification(uiState.value.currentPlayedMusic, true)
                 }
             }
@@ -524,7 +531,6 @@ class PlayerViewModel @Inject constructor(
 
     suspend fun getMonthAnalyticsForMonth(month: Int, year: Int) {
         try {
-//            _monthlyAnalytics.value = null
             delay(100)
             // PERBAIKAN: Format month ke 1-based (month + 1) karena Calendar.MONTH menggunakan 0-based indexing
             val monthString = String.format("%04d-%02d", year, month + 1)
@@ -537,8 +543,6 @@ class PlayerViewModel @Inject constructor(
             _monthlyAnalytics.value = null
         }
     }
-
-
 
     fun getRecentlyPlayed(): List<MusicEntity> {
         return uiState.value.musicList
@@ -559,12 +563,16 @@ class PlayerViewModel @Inject constructor(
             .filter { (it.lastPlayedAt ?: 0) > 0 }
     }
 
-    @RequiresApi(Build.VERSION_CODES.S)
     fun selectAudioDevice(device: AudioDeviceManager.AudioDevice) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || audioDeviceManager == null) {
+            _deviceChangeError.value = "Fitur audio device management tidak didukung di Android versi ini"
+            return
+        }
+
         viewModelScope.launch {
             _isDeviceChanging.value = true
             try {
-               
+
                 environment.pause()
 
                 delay(50)
@@ -596,6 +604,11 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun refreshAudioDevices() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || audioDeviceManager == null) {
+            Log.w("PlayerViewModel", "Audio device refresh not supported on this Android version")
+            return
+        }
+
         viewModelScope.launch {
             try {
                 val devices = audioDeviceManager.availableDevices.value
@@ -613,7 +626,6 @@ class PlayerViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        audioDeviceManager.cleanup()
         cancelNotification()
     }
 

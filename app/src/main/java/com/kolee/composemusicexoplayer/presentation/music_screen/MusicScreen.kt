@@ -201,7 +201,10 @@ private fun PortraitLayout(
         scaffoldState = scaffoldState,
         modifier = Modifier.fillMaxSize()
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+        ) {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(-10.dp),
                 modifier = Modifier

@@ -88,10 +88,11 @@ fun BottomMusicPlayer(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 ShareButton(
-                    songId = currentMusic.audioId,
+                    music = musicUiState.currentPlayedMusic,
                     modifier = Modifier
                         .zIndex(1f)
                 )
+
 
                 IconButton(
                     onClick = {

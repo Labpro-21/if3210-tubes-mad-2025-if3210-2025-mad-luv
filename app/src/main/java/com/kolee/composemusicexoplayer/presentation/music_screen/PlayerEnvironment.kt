@@ -2,7 +2,11 @@ package com.kolee.composemusicexoplayer.presentation.music_screen
 
 import android.content.ContentResolver
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.OptIn
@@ -22,6 +26,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
 import android.util.Log
+import androidx.media3.common.C
+import androidx.media3.common.PlaybackParameters
+import com.kolee.composemusicexoplayer.presentation.audio.AudioDeviceManager
 
 class PlayerEnvironment @OptIn(UnstableApi::class)
 @Inject constructor(
@@ -91,14 +98,21 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
                                     else -> allMusics.value[0]
                                 }
                             }
-                            scope.launch { play(nextSong) }
+                            scope.launch {
+                                play(nextSong)
+                                // Notification will be updated automatically by MusicController
+                            }
                         }
                         PlaybackMode.REPEAT_ONE -> {
-                            scope.launch { play(currentPlayedMusic.value) }
+                            scope.launch {
+                                play(currentPlayedMusic.value)
+                                // Notification will be updated automatically by MusicController
+                            }
                         }
                         PlaybackMode.REPEAT_OFF -> {
                             this@apply.stop()
                             _currentPlayedMusic.tryEmit(MusicEntity.default)
+                            _isPlaying.tryEmit(false)
                         }
                     }
                 }
@@ -276,6 +290,9 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
                 exoPlayer.play()
                 startUpdatingProgress()
             }
+
+            // Ensure the bottom player is shown
+            setShowButtonMusicPlayer(true)
         }
     }
 
@@ -341,7 +358,10 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
     }
 
     suspend fun pause() {
-        playerHandler.post { exoPlayer.pause() }
+        playerHandler.post {
+            exoPlayer.pause()
+        }
+        // The _isPlaying state will be updated by the ExoPlayer listener
         startUpdatingProgress()
     }
 
@@ -349,7 +369,10 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         if (hasStopped.value && currentPlayedMusic.value != MusicEntity.default) {
             play(currentPlayedMusic.value)
         } else {
-            playerHandler.post { exoPlayer.play() }
+            playerHandler.post {
+                exoPlayer.play()
+            }
+            // The _isPlaying state will be updated by the ExoPlayer listener
         }
     }
 
@@ -361,6 +384,16 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         musicRepository.insertMusics(musicWithOwner)
 
         reloadUserMusic()
+    }
+
+    suspend fun stop() {
+        playerHandler.post {
+            exoPlayer.stop()
+            exoPlayer.clearMediaItems()
+        }
+        _currentPlayedMusic.emit(MusicEntity.default)
+        _isPlaying.emit(false)
+        _hasStopped.emit(true)
     }
 
     suspend fun addMusicAndRefresh(music: MusicEntity) {
@@ -476,7 +509,6 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         musicRepository.getAllMusic().first().let { allMusic ->
             Log.d("MusicOwners", "Total music in database: ${allMusic.size}")
 
-            // Group by owner for better readability
             val byOwner = allMusic.groupBy { it.owner }
             byOwner.forEach { (owner, list) ->
                 Log.d("MusicOwners", "Owner: $owner - Count: ${list.size}")
@@ -487,6 +519,76 @@ class PlayerEnvironment @OptIn(UnstableApi::class)
         }
         Log.d("MusicOwners", "===== END OF MANUAL LOG =====")
     }
+
+    @OptIn(UnstableApi::class)
+    fun setAudioDevice(device: AudioDeviceManager.AudioDevice) {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+        val audioAttributes = androidx.media3.common.AudioAttributes.Builder()
+            .setUsage(
+                when (device.type) {
+                    AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> C.USAGE_VOICE_COMMUNICATION
+                    else -> C.USAGE_MEDIA
+                }
+            )
+            .setContentType(
+                when (device.type) {
+                    AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> C.CONTENT_TYPE_SPEECH
+                    else -> C.CONTENT_TYPE_MUSIC
+                }
+            )
+            .build()
+
+        exoPlayer.setAudioAttributes(audioAttributes, true)
+
+        when (device.type) {
+            AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> {
+                audioManager.mode = AudioManager.MODE_NORMAL
+                audioManager.isSpeakerphoneOn = true
+                if (audioManager.isBluetoothScoOn) audioManager.stopBluetoothSco()
+                audioManager.isBluetoothScoOn = false
+            }
+
+            AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+            AudioDeviceInfo.TYPE_WIRED_HEADSET -> {
+                audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+                audioManager.isSpeakerphoneOn = false
+                if (audioManager.isBluetoothScoOn) audioManager.stopBluetoothSco()
+                audioManager.isBluetoothScoOn = false
+            }
+
+            AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> {
+                audioManager.mode = AudioManager.MODE_NORMAL
+                audioManager.isSpeakerphoneOn = false
+                if (audioManager.isBluetoothScoOn) audioManager.stopBluetoothSco()
+                audioManager.isBluetoothScoOn = false
+            }
+
+            AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> {
+                audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+                audioManager.startBluetoothSco()
+                audioManager.isBluetoothScoOn = true
+            }
+
+            AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> {
+                audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+                audioManager.isSpeakerphoneOn = false
+                if (audioManager.isBluetoothScoOn) audioManager.stopBluetoothSco()
+                audioManager.isBluetoothScoOn = false
+            }
+
+            else -> {
+                audioManager.mode = AudioManager.MODE_NORMAL
+                audioManager.isSpeakerphoneOn = false
+                if (audioManager.isBluetoothScoOn) audioManager.stopBluetoothSco()
+                audioManager.isBluetoothScoOn = false
+            }
+        }
+
+        exoPlayer.pause()
+        exoPlayer.play()
+    }
+
 
     fun release() {
         exoPlayer.release()

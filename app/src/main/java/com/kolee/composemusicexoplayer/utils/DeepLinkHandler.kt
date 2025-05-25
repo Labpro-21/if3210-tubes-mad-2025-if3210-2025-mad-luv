@@ -11,14 +11,21 @@ import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.qrcode.QRCodeWriter
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import java.io.File
 import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerViewModel
+import com.kolee.composemusicexoplayer.presentation.music_screen.PlayerEvent
 
 object DeepLinkHandler {
     private const val TAG = "DeepLinkHandler"
     private const val SCHEME = "purrytify"
     private const val HOST_SONG = "song"
-
     private const val BASE_URL = "https://purrytify.vercel.app"
 
     fun createShareableURL(songId: Long): String {
@@ -41,7 +48,6 @@ object DeepLinkHandler {
         }
     }
 
-
     fun extractSongIdFromURL(url: String): Long? {
         return try {
             val uri = Uri.parse(url)
@@ -56,7 +62,6 @@ object DeepLinkHandler {
             null
         }
     }
-
 
     fun shareSong(context: Context, songId: Long, songTitle: String? = null, artistName: String? = null) {
         val shareableURL = createShareableURL(songId)
@@ -78,7 +83,6 @@ object DeepLinkHandler {
         val chooserIntent = Intent.createChooser(shareIntent, "Share Song")
         context.startActivity(chooserIntent)
     }
-
 
     fun shareQRCode(context: Context, songId: Long, songTitle: String? = null, artistName: String? = null) {
         try {
@@ -137,38 +141,123 @@ object DeepLinkHandler {
     }
 
     /**
+     * Validates if the scanned QR code is a valid Purrytify link
+     * Shows detailed logging of the extraction process
+     */
+    fun isValidPurrytifyQR(content: String): Boolean {
+        return try {
+            Log.d(TAG, "🔍 Validating QR content: $content")
+
+            val uri = Uri.parse(content)
+            Log.d(TAG, "📋 Parsed URI - Scheme: ${uri.scheme}, Host: ${uri.host}, Path: ${uri.path}")
+
+            val isWebURL = uri.host?.contains("purrytify") == true &&
+                    uri.pathSegments.size >= 2 &&
+                    uri.pathSegments[0] == "song"
+
+            val isDeepLink = uri.scheme == SCHEME && uri.host == HOST_SONG
+
+            Log.d(TAG, "✅ Validation result - Web URL: $isWebURL, Deep Link: $isDeepLink")
+
+            val isValid = isWebURL || isDeepLink
+
+            if (isValid) {
+                val songId = if (isWebURL) extractSongIdFromURL(content) else extractSongIdFromUri(uri)
+                Log.d(TAG, "🎵 Extracted Song ID: $songId")
+            } else {
+                Log.w(TAG, "❌ Invalid Purrytify QR code detected")
+            }
+
+            isValid
+        } catch (e: Exception) {
+            Log.e(TAG, "💥 Error validating QR content: $content", e)
+            false
+        }
+    }
+
+    fun convertToDeepLink(url: String): String? {
+        val songId = extractSongIdFromURL(url)
+        return if (songId != null) {
+            "$SCHEME://$HOST_SONG/$songId"
+        } else null
+    }
+
+    suspend fun handleDeepLink(
+        context: Context,
+        uri: Uri,
+        playerViewModel: PlayerViewModel
+    ): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "🔗 Handling deep link: $uri")
+
+                val songId = extractSongIdFromUri(uri)
+                if (songId != null) {
+                    Log.d(TAG, "🎵 Loading song with ID: $songId")
+
+                    withContext(Dispatchers.Main) {
+                        // Use the existing fetchAndPlaySharedSong method from PlayerViewModel
+                        playerViewModel.fetchAndPlaySharedSong(songId.toString())
+
+                        Toast.makeText(
+                            context,
+                            "🎵 Song loaded successfully!",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+
+                    true
+                } else {
+                    Log.e(TAG, "❌ Failed to extract song ID from URI: $uri")
+
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(
+                            context,
+                            "❌ Invalid song link",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+
+                    false
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "💥 Error handling deep link", e)
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        context,
+                        "❌ Error loading song: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+
+                false
+            }
+        }
+    }
+
+    /**
      * Generates a QR code bitmap from a string
-     * @param content The content to encode in the QR code
-     * @param size The size of the QR code in pixels
-     * @return A Bitmap containing the QR code
      */
     private fun generateQRCode(content: String, size: Int): Bitmap {
-//        val hints = hashMapOf<EncodeHintType, Any>().apply {
-//            put(EncodeHintType.MARGIN, 1)
-//            put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H)
-//        }
-//
-//        val qrCodeWriter = QRCodeWriter()
-//        val bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, size, size, hints)
+        val hints = hashMapOf<EncodeHintType, Any>().apply {
+            put(EncodeHintType.MARGIN, 1)
+            put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H)
+        }
+
+        val qrCodeWriter = QRCodeWriter()
+        val bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, size, size, hints)
 
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-//        for (x in 0 until size) {
-//            for (y in 0 until size) {
-//                bitmap.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
-//            }
-//        }
+        for (x in 0 until size) {
+            for (y in 0 until size) {
+                bitmap.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
+            }
+        }
 
         return bitmap
     }
 
-    /**
-     * Generates a QR code bitmap with song information below it
-     * @param content The content to encode in the QR code
-     * @param size The size of the QR code in pixels
-     * @param songTitle The title of the song
-     * @param artistName The name of the artist (optional)
-     * @return A Bitmap containing the QR code and song information
-     */
     private fun generateQRCodeWithInfo(
         content: String,
         size: Int,

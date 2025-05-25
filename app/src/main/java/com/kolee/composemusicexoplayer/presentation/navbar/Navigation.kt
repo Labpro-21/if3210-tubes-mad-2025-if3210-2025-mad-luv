@@ -12,6 +12,7 @@ import com.google.accompanist.navigation.material.bottomSheet
 import com.kolee.composemusicexoplayer.presentation.music_screen.MusicScreen
 import com.kolee.composemusicexoplayer.presentation.library.LibraryScreen
 import com.kolee.composemusicexoplayer.presentation.profil_screen.ProfileScreen
+import com.kolee.composemusicexoplayer.presentation.qr.QRScanScreen
 import com.kolee.composemusicexoplayer.presentation.soundcapsule_screen.TopArtistsDetailPage
 import com.kolee.composemusicexoplayer.data.auth.AuthViewModel
 import com.kolee.composemusicexoplayer.data.auth.UserPreferences
@@ -40,6 +41,13 @@ fun Navigation(
         }
         composable("library") {
             LibraryScreen(playerVM = playerViewModel, navController, networkSensing)
+        }
+        composable("scan_qr") {
+            QRScanScreen(
+                playerViewModel = playerViewModel,
+                navController = navController,
+                networkSensing = networkSensing
+            )
         }
         composable("profile") {
             ProfileScreen(

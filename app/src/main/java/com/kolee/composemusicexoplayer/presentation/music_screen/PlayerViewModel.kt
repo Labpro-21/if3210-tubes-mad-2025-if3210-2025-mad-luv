@@ -86,7 +86,6 @@ class PlayerViewModel @Inject constructor(
 
     init {
         initializeAudioDevices()
-        notificationHelper.createNotificationChannel()
 
         viewModelScope.launch {
             environment.getAllMusic().collect { musics ->

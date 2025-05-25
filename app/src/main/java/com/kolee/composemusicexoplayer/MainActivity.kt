@@ -32,6 +32,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import com.google.accompanist.navigation.material.BottomSheetNavigator
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material.ModalBottomSheetValue
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.compose.rememberNavController
 import com.kolee.composemusicexoplayer.data.auth.UserPreferences
@@ -77,6 +78,7 @@ class MainActivity : ComponentActivity() {
                         val bottomNavItems = listOf(
                             BottomNavItem("Home", "home", Icons.Filled.Home),
                             BottomNavItem("Library", "library", Icons.Filled.LibraryMusic),
+                            BottomNavItem("Scan QR", "scan_qr", Icons.Outlined.QrCodeScanner),
                             BottomNavItem("Profile", "profile", Icons.Filled.Person)
                         )
 
